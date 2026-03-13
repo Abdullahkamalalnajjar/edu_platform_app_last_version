@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run on Port 57331",
+            "request": "launch",
+            "type": "dart",
+            "args": [
+                "--web-port=57331"
+            ]
+        }
+    ]
+}
