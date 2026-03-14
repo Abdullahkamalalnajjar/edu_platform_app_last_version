@@ -62,6 +62,10 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
         ? List.from(widget.course.lectures)
         : widget.course.lectures.where((l) => l.isVisible).toList();
     _lectures.sort((a, b) => a.index.compareTo(b.index));
+    // Sort materials inside each lecture
+    for (var lecture in _lectures) {
+      lecture.materials.sort((a, b) => a.index.compareTo(b.index));
+    }
     _backgroundController = AnimationController(
       duration: const Duration(seconds: 20),
       vsync: this,
@@ -186,6 +190,10 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
           _lectures = allLectures.where((l) => l.isVisible).toList();
         }
         _lectures.sort((a, b) => a.index.compareTo(b.index));
+        // Sort materials inside each lecture
+        for (var lecture in _lectures) {
+          lecture.materials.sort((a, b) => a.index.compareTo(b.index));
+        }
       });
       _fetchExams();
     }
@@ -233,6 +241,9 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
         if (role == 'Teacher' || role == 'Admin' || role == 'Assistant') {
           _lectures = List.from(widget.course.lectures);
           _lectures.sort((a, b) => a.index.compareTo(b.index));
+          for (var lecture in _lectures) {
+            lecture.materials.sort((a, b) => a.index.compareTo(b.index));
+          }
         }
       });
     }
@@ -339,13 +350,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
           ),
         ],
       ),
-      floatingActionButton: widget
-              .isTeacher // Removed !_isAssistant to allow assistants to add lectures if that was intended, or keep it if strictly teacher only.
-          // Wait, previous request was about assistant getting teacher notifications.
-          // This request is "lecture_added" -> "عند الطالب" (For Student).
-          // So the FAB condition is irrelevant for the student notification.
-          // But I can improve the student experience by highlighting the new lecture.
-          // I will add `initialLectureId` to the constructor.
+      floatingActionButton: widget.isTeacher
           ? FloatingActionButton.extended(
               onPressed: _showAddLectureDialog,
               backgroundColor: AppColors.primary,
@@ -1012,6 +1017,47 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                           ),
                         ),
                       ),
+                      if (lecture.materials.length > 1)
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            top: 12,
+                            left: 24,
+                            right: 24,
+                          ),
+                          child: InkWell(
+                            onTap: () => _showReorderMaterialsSheet(lecture),
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withOpacity(0.1),
+                                border: Border.all(
+                                  color: Colors.blue.withOpacity(0.3),
+                                  style: BorderStyle.solid,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.reorder_rounded,
+                                    size: 20,
+                                    color: Colors.blue,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    "ترتيب المواد",
+                                    style: GoogleFonts.inter(
+                                      color: Colors.blue,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       // Always show 'Create Exam' button for teachers to allow multiple exams/assignments
                       Padding(
                         padding: const EdgeInsets.only(
@@ -1735,6 +1781,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                               lectureTitle:
                                   exam.lectureName ?? 'اختبار المحاضرة',
                               examId: exam.id,
+                              courseId: widget.course.id,
                             ),
                           ),
                         );
@@ -1979,6 +2026,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
             courseId: lecture.courseId,
             materials: lecture.materials,
             isVisible: newVisibility,
+            index: lecture.index,
           );
         }
       });
@@ -2529,17 +2577,22 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                             ? urlController.text.trim()
                             : selectedFile!.path!,
                         isFree: isFree,
+                        index: lecture.materials.length,
+                        title: titleController.text.trim(),
                       );
 
                       final updatedMaterials = List<CourseMaterial>.from(
                         lecture.materials,
                       )..add(newMaterial);
+                      updatedMaterials.sort((a, b) => a.index.compareTo(b.index));
 
                       _lectures[lectureIndex] = Lecture(
                         id: lecture.id,
                         title: lecture.title,
                         courseId: lecture.courseId,
                         materials: updatedMaterials,
+                        isVisible: lecture.isVisible,
+                        index: lecture.index,
                       );
                     });
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -2694,6 +2747,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                             fileUrl: material.fileUrl,
                             title: titleController.text.trim(),
                             isFree: isFree,
+                            index: material.index,
                           );
                           break;
                         }
@@ -3505,6 +3559,23 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
       ),
     );
   }
+
+  // --- SHOW REORDER MATERIALS SHEET ---
+  void _showReorderMaterialsSheet(Lecture lecture) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _ReorderMaterialsSheet(
+        lectureId: lecture.id,
+        initialMaterials: lecture.materials,
+        teacherService: _teacherService,
+        onReordered: () {
+          _refreshCourse();
+        },
+      ),
+    );
+  }
 }
 
 class _ReorderLecturesSheet extends StatefulWidget {
@@ -3613,6 +3684,153 @@ class _ReorderLecturesSheetState extends State<_ReorderLecturesSheet> {
                     leading:
                         const Icon(Icons.drag_indicator, color: Colors.grey),
                     title: Text(lecture.title,
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                    subtitle: Text('${index + 1}',
+                        style: GoogleFonts.inter(
+                            fontSize: 12, color: AppColors.primary)),
+                  ),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16)
+                .copyWith(bottom: MediaQuery.of(context).padding.bottom + 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _saveOrder,
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12))),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2))
+                    : Text('حفظ الترتيب',
+                        style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16)),
+              ),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+}
+
+class _ReorderMaterialsSheet extends StatefulWidget {
+  final int lectureId;
+  final List<CourseMaterial> initialMaterials;
+  final TeacherService teacherService;
+  final VoidCallback onReordered;
+
+  const _ReorderMaterialsSheet({
+    required this.lectureId,
+    required this.initialMaterials,
+    required this.teacherService,
+    required this.onReordered,
+  });
+
+  @override
+  State<_ReorderMaterialsSheet> createState() => _ReorderMaterialsSheetState();
+}
+
+class _ReorderMaterialsSheetState extends State<_ReorderMaterialsSheet> {
+  late List<CourseMaterial> _localMaterials;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _localMaterials = List.from(widget.initialMaterials);
+  }
+
+  void _onReorder(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) {
+        newIndex -= 1;
+      }
+      final material = _localMaterials.removeAt(oldIndex);
+      _localMaterials.insert(newIndex, material);
+    });
+  }
+
+  Future<void> _saveOrder() async {
+    setState(() => _isLoading = true);
+    final orderedIds = _localMaterials.map((m) => m.id).toList();
+    final res = await widget.teacherService
+        .reorderMaterials(widget.lectureId, orderedIds);
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      if (res.succeeded) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('تم ترتيب المواد بنجاح'),
+              backgroundColor: AppColors.success),
+        );
+        widget.onReordered();
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(res.message), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.7,
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(
+        children: [
+          // Drag handle
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Theme.of(context).dividerColor.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'ترتيب المواد',
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: ReorderableListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              itemCount: _localMaterials.length,
+              onReorder: _onReorder,
+              itemBuilder: (context, index) {
+                final material = _localMaterials[index];
+                return Card(
+                  key: ValueKey(material.id),
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading:
+                        const Icon(Icons.drag_indicator, color: Colors.grey),
+                    title: Text(material.title ?? 'مادة بدون عنوان',
                         style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
                     subtitle: Text('${index + 1}',
                         style: GoogleFonts.inter(

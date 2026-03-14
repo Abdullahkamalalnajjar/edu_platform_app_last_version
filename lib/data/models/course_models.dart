@@ -1,5 +1,6 @@
 class CourseRequest {
   final String title;
+  final String? description;
   final int gradeYear;
   final int teacherId;
   final int educationStageId;
@@ -9,6 +10,7 @@ class CourseRequest {
 
   CourseRequest({
     required this.title,
+    this.description,
     required this.gradeYear,
     required this.teacherId,
     required this.educationStageId,
@@ -16,9 +18,8 @@ class CourseRequest {
     required this.discountedPrice,
     this.imagePath,
   });
-
   Map<String, dynamic> toJson() {
-    return {
+    final map = <String, dynamic>{
       'title': title,
       'gradeYear': gradeYear,
       'teacherId': teacherId,
@@ -26,10 +27,14 @@ class CourseRequest {
       'price': price,
       'discountedPrice': discountedPrice,
     };
+    if (description != null) {
+      map['description'] = description;
+    }
+    return map;
   }
 
   Map<String, String> toFields() {
-    return {
+    final fields = {
       'Title': title,
       'TeacherId': teacherId.toString(),
       'EducationStageId': educationStageId.toString(),
@@ -37,6 +42,10 @@ class CourseRequest {
       'Price': price.toString(),
       'DiscountedPrice': discountedPrice.toString(),
     };
+    if (description != null && description!.isNotEmpty) {
+      fields['Description'] = description!;
+    }
+    return fields;
   }
 }
 
@@ -84,6 +93,7 @@ class CourseMaterial {
   final String fileUrl;
   final String? title;
   final bool isFree;
+  final int index;
 
   CourseMaterial({
     required this.id,
@@ -91,6 +101,7 @@ class CourseMaterial {
     required this.fileUrl,
     this.title,
     required this.isFree,
+    this.index = 0,
   });
 
   factory CourseMaterial.fromJson(Map<String, dynamic> json) {
@@ -100,6 +111,7 @@ class CourseMaterial {
       fileUrl: json['fileUrl'] ?? json['videoUrl'] ?? '',
       title: json['title'],
       isFree: json['isFree'] ?? json['is_free'] ?? false,
+      index: json['index'] ?? 0,
     );
   }
 }
@@ -127,9 +139,10 @@ class Lecture {
       title: json['title'] ?? '',
       courseId: json['courseId'] ?? 0,
       materials: json['materials'] != null
-          ? (json['materials'] as List)
+          ? ((json['materials'] as List)
               .map((e) => CourseMaterial.fromJson(e))
               .toList()
+            ..sort((a, b) => a.index.compareTo(b.index)))
           : [],
       // Handle both camelCase and snake_case, defaulting to true if neither exists
       isVisible: json['isVisible'] ?? json['is_visible'] ?? true,
@@ -141,6 +154,7 @@ class Lecture {
 class Course {
   final int id;
   final String title;
+  final String? description;
   final int gradeYear;
   final String? educationStageName;
   final int teacherId;
@@ -154,6 +168,7 @@ class Course {
   Course({
     required this.id,
     required this.title,
+    this.description,
     required this.gradeYear,
     this.educationStageName,
     required this.teacherId,
@@ -169,6 +184,7 @@ class Course {
     return Course(
       id: json['id'] ?? 0,
       title: json['title'] ?? '',
+      description: json['description'],
       // Support both gradeYear and educationStageId for backwards compatibility
       gradeYear: json['educationStageId'] ?? json['gradeYear'] ?? 0,
       educationStageName: json['educationStageName'],
@@ -875,6 +891,57 @@ class StudentCourseScore {
       percentage: (json['percentage'] ?? 0).toDouble(),
       examsCount: json['examsCount'] ?? 0,
       completedExamsCount: json['completedExamsCount'] ?? 0,
+    );
+  }
+}
+
+class NonSubmittedStudentsResponse {
+  final int totalEnrolledStudents;
+  final int submittedCount;
+  final int nonSubmittedCount;
+  final List<NonSubmittedStudentDto> nonSubmittedStudents;
+
+  NonSubmittedStudentsResponse({
+    required this.totalEnrolledStudents,
+    required this.submittedCount,
+    required this.nonSubmittedCount,
+    required this.nonSubmittedStudents,
+  });
+
+  factory NonSubmittedStudentsResponse.fromJson(Map<String, dynamic> json) {
+    return NonSubmittedStudentsResponse(
+      totalEnrolledStudents: json['totalEnrolledStudents'] ?? 0,
+      submittedCount: json['submittedCount'] ?? 0,
+      nonSubmittedCount: json['nonSubmittedCount'] ?? 0,
+      nonSubmittedStudents: (json['nonSubmittedStudents'] as List? ?? [])
+          .map((e) => NonSubmittedStudentDto.fromJson(e))
+          .toList(),
+    );
+  }
+}
+
+class NonSubmittedStudentDto {
+  final int studentId;
+  final String studentName;
+  final String studentEmail;
+  final String studentPhone;
+  final String parentPhone;
+
+  NonSubmittedStudentDto({
+    required this.studentId,
+    required this.studentName,
+    required this.studentEmail,
+    required this.studentPhone,
+    required this.parentPhone,
+  });
+
+  factory NonSubmittedStudentDto.fromJson(Map<String, dynamic> json) {
+    return NonSubmittedStudentDto(
+      studentId: json['studentId'] ?? 0,
+      studentName: json['studentName'] ?? '',
+      studentEmail: json['studentEmail'] ?? '',
+      studentPhone: json['studentPhone'] ?? '',
+      parentPhone: json['parentPhone'] ?? '',
     );
   }
 }

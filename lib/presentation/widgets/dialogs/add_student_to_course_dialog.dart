@@ -154,12 +154,15 @@ class _AddStudentToCourseDialogState extends State<AddStudentToCourseDialog> {
                   style: GoogleFonts.outfit(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).textTheme.titleLarge?.color,
                   ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                  icon: Icon(
+                    Icons.close,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
               ],
             ),

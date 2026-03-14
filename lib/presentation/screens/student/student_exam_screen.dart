@@ -82,7 +82,8 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
   bool _hasTimer = false;
   bool _isReviewing = false;
   int? _studentExamResultId;
-  bool _isAssistant = false; // Track if user is assistant
+  bool _isAssistant = false;
+  DateTime? _effectiveDeadline;
 
   @override
   void initState() {
@@ -308,73 +309,32 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
           if (exam.deadline != null) {
             final now = DateTime.now();
             final deadline = exam.deadline!;
+            _effectiveDeadline = deadline;
 
-            // Compare only up to minutes (ignore seconds)
-            final nowMinute = DateTime(
-              now.year,
-              now.month,
-              now.day,
-              now.hour,
-              now.minute,
-            );
-            final deadlineMinute = DateTime(
-              deadline.year,
-              deadline.month,
-              deadline.day,
-              deadline.hour,
-              deadline.minute,
+            // Always check for exceptions/access status if there's a deadline
+            // to ensure we have the correct effective deadline (original or extended)
+            final accessResponse = await _courseService.checkExamAccess(
+              examId: exam.id,
+              studentId: effectiveStudentId,
             );
 
-            // Check if current time is after deadline (by minute)
-            if (nowMinute.isAfter(deadlineMinute)) {
-              // Deadline has passed - check for exceptions
-              print('⏰ Deadline has passed. Checking for exceptions...');
-              print('   Current time (minute): $nowMinute');
-              print('   Deadline (minute): $deadlineMinute');
-
-              final accessResponse = await _courseService.checkExamAccess(
-                examId: exam.id,
-                studentId: effectiveStudentId,
+            if (accessResponse.succeeded && accessResponse.data != null) {
+              final access = accessResponse.data!;
+              _effectiveDeadline = access.extendedDeadline ?? access.deadline ?? exam.deadline;
+              
+              final nowMinute = DateTime(now.year, now.month, now.day, now.hour, now.minute);
+              final effectiveDeadlineMinute = DateTime(
+                _effectiveDeadline!.year, 
+                _effectiveDeadline!.month, 
+                _effectiveDeadline!.day, 
+                _effectiveDeadline!.hour, 
+                _effectiveDeadline!.minute
               );
 
-              if (accessResponse.succeeded && accessResponse.data != null) {
-                final access = accessResponse.data!;
-
-                // Debug logging
-                print(
-                  '🔍 Access check: hasException=${access.hasException}, extendedDeadline=${access.extendedDeadline}, deadline=${access.deadline}',
-                );
-
-                // Check if student has exception - if yes, always allow
+              if (nowMinute.isAfter(effectiveDeadlineMinute)) {
                 if (access.hasException) {
-                  // Has exception - allow access
-                  print('✅ Student has exception. Access granted.');
-                  // Show message about exception
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '✅ لديك استثناء للموعد النهائي',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            if (access.extendedDeadline != null)
-                              Text(
-                                'الموعد الجديد: ${_formatDeadline(access.extendedDeadline!)}',
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                          ],
-                        ),
-                        backgroundColor: const Color(0xFF10B981),
-                        duration: const Duration(seconds: 4),
-                      ),
-                    );
-                  }
+                  print('✅ Student has exception. Access granted until ${_formatDeadline(_effectiveDeadline!)}');
                 } else {
-                  // No exception - block access
                   print('❌ No exception. Access denied.');
                   if (mounted) {
                     setState(() {
@@ -382,9 +342,14 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                     });
                   }
                 }
-              } else {
-                // API failed - assume no exception, block access
-                print('❌ Failed to check access. Blocking access.');
+              }
+            } else {
+              // API failed - fallback to checking original deadline
+              final nowMinute = DateTime(now.year, now.month, now.day, now.hour, now.minute);
+              final deadlineMinute = DateTime(deadline.year, deadline.month, deadline.day, deadline.hour, deadline.minute);
+              
+              if (nowMinute.isAfter(deadlineMinute)) {
+                print('❌ Failed to check access. Blocking access based on original deadline.');
                 if (mounted) {
                   setState(() {
                     _isExpired = true;
@@ -622,6 +587,16 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      // 🚨 CRITICAL: Check absolute deadline even if timer has time left
+      if (_effectiveDeadline != null) {
+        final now = DateTime.now();
+        if (now.isAfter(_effectiveDeadline!)) {
+          timer.cancel();
+          _handleTimeUp(reason: 'انتهى الموعد النهائي للاختبار (Deadline)!');
+          return;
+        }
+      }
+
       if (_remainingTime.inSeconds <= 0) {
         timer.cancel();
         _handleTimeUp();
@@ -633,16 +608,16 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
     });
   }
 
-  void _handleTimeUp() {
+  void _handleTimeUp({String? reason}) {
     _timer?.cancel();
 
     if (_isAlreadySubmitted || _isSubmitting) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('انتهى الوقت! جاري تسليم الاختبار...'),
+      SnackBar(
+        content: Text(reason ?? 'انتهى الوقت! جاري تسليم الاختبار...'),
         backgroundColor: AppColors.warning,
-        duration: Duration(seconds: 2),
+        duration: const Duration(seconds: 3),
       ),
     );
 

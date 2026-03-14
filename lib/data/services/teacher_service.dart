@@ -731,6 +731,68 @@ class TeacherService {
     }
   }
 
+  Future<ApiResponse<bool>> reorderMaterials(
+      int lectureId, List<int> orderedMaterialIds) async {
+    try {
+      final headers = await _getHeaders();
+      final body = {
+        'lectureId': lectureId,
+        'orderedMaterialIds': orderedMaterialIds,
+      };
+
+      print('--- Reorder Materials Request ---');
+      print('URL: ${ApiConstants.lectures}/materials/reorder');
+      print('Payload: $body');
+      print('---------------------------------');
+
+      final response = await http.post(
+        Uri.parse('${ApiConstants.lectures}/materials/reorder'),
+        headers: headers,
+        body: jsonEncode(body),
+      );
+
+      print('--- Reorder Materials Response ---');
+      print('Status: ${response.statusCode}');
+      print('Body: ${response.body}');
+      print('---------------------------------');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        if (response.body.isEmpty) {
+          return ApiResponse(
+            succeeded: true,
+            data: true,
+            statusCode: response.statusCode,
+            message: 'تم إعادة الترتيب بنجاح',
+          );
+        }
+        final bodyData = jsonDecode(response.body);
+        return ApiResponse<bool>.fromJson(bodyData, (data) => true);
+      } else {
+        final bodyData =
+            response.body.isNotEmpty ? jsonDecode(response.body) : {};
+        if (response.statusCode == 401) {
+          return ApiResponse(
+            succeeded: false,
+            statusCode: response.statusCode,
+            message: bodyData['message'] ??
+                'أنتهت صلاحية الجلسة يرجي تسجيل الخروج وتسجيل الدخول مرة أخرة',
+          );
+        }
+        return ApiResponse(
+          succeeded: false,
+          statusCode: response.statusCode,
+          message: bodyData['message'] ?? 'Failed to reorder materials',
+        );
+      }
+    } catch (e) {
+      return ApiResponse(
+        statusCode: 500,
+        succeeded: false,
+        message: 'حدث خطأ أثناء الترتيب: $e',
+      );
+    }
+  }
+
   Future<ApiResponse<bool>> deleteMaterial(int materialId) async {
     try {
       final headers = await _getHeaders();

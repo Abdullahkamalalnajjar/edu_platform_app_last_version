@@ -116,6 +116,11 @@ class SettingsService {
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
+      // Log the response for debugging as requested
+      print('=== updateAppInfo Response ===');
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+
       final Map<String, dynamic> jsonResponse = json.decode(response.body);
 
       if (response.statusCode == 200 && jsonResponse['succeeded'] == true) {
@@ -335,6 +340,11 @@ class SettingsService {
         Uri.parse(ApiConstants.updateAppInfo),
         headers: {...ApiConstants.headers, 'Authorization': 'Bearer $token'},
       );
+
+      // Log the response for debugging
+      print('=== getAppInfo Response ===');
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
 
       final Map<String, dynamic> jsonResponse = json.decode(response.body);
 

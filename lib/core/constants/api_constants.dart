@@ -52,6 +52,9 @@ class ApiConstants {
   static String getSubmissionsByExamId(int examId) =>
       '$baseUrl/api/v1/exams/$examId/submissions';
 
+  static String getNonSubmittedStudents(int examId, int courseId) =>
+      '$baseUrl/api/v1/exams/$examId/non-submitted-students?courseId=$courseId';
+
   // Get exam by ID
   static String getExamById(int examId) => '$baseUrl/api/v1/exams/$examId';
 

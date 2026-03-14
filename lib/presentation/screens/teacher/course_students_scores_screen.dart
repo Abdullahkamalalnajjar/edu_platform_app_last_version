@@ -424,6 +424,53 @@ class _CourseStudentsScoresScreenState
                         ),
                       ),
                     ],
+                    if (score.studentPhone != null && score.studentPhone!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      InkWell(
+                        onTap: () => _callParent(score.studentPhone!),
+                        borderRadius: BorderRadius.circular(4),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2.0),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.phone_android_rounded, size: 12, color: AppColors.primary),
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'رقم الطالب:',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 10,
+                                        color: AppColors.textSecondary,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    Text(
+                                      score.studentPhone!,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 13,
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

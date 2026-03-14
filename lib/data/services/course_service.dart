@@ -603,6 +603,42 @@ class CourseService {
     }
   }
 
+  Future<ApiResponse<NonSubmittedStudentsResponse>> getNonSubmittedStudents({
+    required int examId,
+    required int courseId,
+  }) async {
+    try {
+      final token = await _tokenService.getToken();
+      final headers = {
+        ...ApiConstants.headers,
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+
+      final url = ApiConstants.getNonSubmittedStudents(examId, courseId);
+      final response = await http.get(Uri.parse(url), headers: headers);
+      final body = jsonDecode(response.body);
+
+      if (body['succeeded'] == true) {
+        return ApiResponse<NonSubmittedStudentsResponse>.fromJson(
+          body,
+          (data) => NonSubmittedStudentsResponse.fromJson(data),
+        );
+      } else {
+        return ApiResponse(
+          statusCode: response.statusCode,
+          succeeded: false,
+          message: body['message'] ?? 'Failed to fetch non-submitted students',
+        );
+      }
+    } catch (e) {
+      return ApiResponse(
+        statusCode: 500,
+        succeeded: false,
+        message: 'An error occurred: $e',
+      );
+    }
+  }
+
   Future<ApiResponse<GradeExamResponse>> gradeExam(
     GradeExamRequest request,
   ) async {

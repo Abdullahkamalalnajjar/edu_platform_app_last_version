@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:edu_platform_app/core/constants/app_colors.dart';
@@ -432,6 +433,7 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
 
   Future<void> _showAddCourseDialog() async {
     final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
     final gradeYearController = TextEditingController();
     final priceController = TextEditingController();
     final discountedPriceController = TextEditingController();
@@ -460,6 +462,7 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
               'إضافة دورة جديدة',
               style: GoogleFonts.outfit(
                 color: Theme.of(context).textTheme.titleLarge?.color,
+                fontWeight: FontWeight.bold,
               ),
             ),
             content: SingleChildScrollView(
@@ -474,6 +477,21 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                         color: Theme.of(context).textTheme.bodyMedium?.color,
                       ),
                     ),
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  TextField(
+                    controller: descriptionController,
+                    decoration: InputDecoration(
+                      labelText: 'الوصف (اختياري)',
+                      labelStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
+                    ),
+                    maxLines: 3,
                     style: TextStyle(
                       color: Theme.of(context).textTheme.bodyLarge?.color,
                     ),
@@ -530,9 +548,13 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                     dropdownColor: Theme.of(context).cardColor,
                     decoration: InputDecoration(
                       labelText: 'المرحلة الدراسية',
-                      labelStyle: TextStyle(color: AppColors.textSecondary),
+                      labelStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
                       enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: AppColors.textSecondary),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
                       ),
                     ),
                     style: GoogleFonts.inter(
@@ -541,7 +563,12 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                     items: _educationStages.map((stage) {
                       return DropdownMenuItem<int>(
                         value: stage['id'],
-                        child: Text(stage['name'] ?? ''),
+                        child: Text(
+                          stage['name'] ?? '',
+                          style: TextStyle(
+                            color: Theme.of(context).textTheme.bodyLarge?.color,
+                          ),
+                        ),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -632,6 +659,7 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
 
                     final request = CourseRequest(
                       title: titleController.text,
+                      description: descriptionController.text.isNotEmpty ? descriptionController.text : null,
                       gradeYear: int.parse(
                         _convertArabicToEnglishNumbers(
                           gradeYearController.text,
@@ -778,7 +806,7 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
           slivers: [
             // ── Collapsible SliverAppBar ─────────────────────────────
             SliverAppBar(
-              expandedHeight: 260,
+              expandedHeight: 190,
               collapsedHeight: 65,
               toolbarHeight: 65,
               pinned: true,
@@ -987,8 +1015,7 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                           top: 24,
                           right: 16,
                           child: Icon(Icons.nightlight_round,
-                              color: const Color(0xFFFFD54F)
-                                  .withOpacity(0.50),
+                              color: const Color(0xFFFFD54F).withOpacity(0.50),
                               size: 32),
                         ),
                         // Stars constellation
@@ -996,32 +1023,28 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                           top: 18,
                           right: 50,
                           child: Icon(Icons.star_rounded,
-                              color: const Color(0xFFFFD54F)
-                                  .withOpacity(0.35),
+                              color: const Color(0xFFFFD54F).withOpacity(0.35),
                               size: 12),
                         ),
                         Positioned(
                           top: 36,
                           right: 52,
                           child: Icon(Icons.star_rounded,
-                              color: const Color(0xFFFFD54F)
-                                  .withOpacity(0.20),
+                              color: const Color(0xFFFFD54F).withOpacity(0.20),
                               size: 8),
                         ),
                         Positioned(
                           top: 14,
                           right: 70,
                           child: Icon(Icons.star_rounded,
-                              color: const Color(0xFFFFD54F)
-                                  .withOpacity(0.15),
+                              color: const Color(0xFFFFD54F).withOpacity(0.15),
                               size: 6),
                         ),
                         Positioned(
                           top: 42,
                           right: 70,
                           child: Icon(Icons.auto_awesome,
-                              color: const Color(0xFFFFD54F)
-                                  .withOpacity(0.12),
+                              color: const Color(0xFFFFD54F).withOpacity(0.12),
                               size: 14),
                         ),
                         // Subtle lantern glow bottom-left
@@ -1029,8 +1052,7 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                           bottom: 50,
                           left: 18,
                           child: Icon(Icons.auto_awesome,
-                              color: const Color(0xFFFFD54F)
-                                  .withOpacity(0.08),
+                              color: const Color(0xFFFFD54F).withOpacity(0.08),
                               size: 20),
                         ),
                       ],
@@ -1038,38 +1060,26 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                       // ── Main content ──────────────────────────────
                       SafeArea(
                         child: Padding(
-                          padding:
-                              const EdgeInsets.fromLTRB(16, 6, 16, 0),
+                          padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const SizedBox(height: 85),
+                              const SizedBox(height: 70),
 
                               // ── Shimmer divider ─────────
                               Container(
                                 height: 1.2,
                                 decoration: BoxDecoration(
-                                  borderRadius:
-                                      BorderRadius.circular(1),
+                                  borderRadius: BorderRadius.circular(1),
                                   gradient: LinearGradient(
                                     colors: [
                                       Colors.transparent,
-                                      Colors.white
-                                          .withOpacity(0.15),
-                                      Colors.white
-                                          .withOpacity(0.35),
-                                      Colors.white
-                                          .withOpacity(0.15),
+                                      Colors.white.withOpacity(0.15),
+                                      Colors.white.withOpacity(0.35),
+                                      Colors.white.withOpacity(0.15),
                                       Colors.transparent,
                                     ],
-                                    stops: const [
-                                      0.0,
-                                      0.2,
-                                      0.5,
-                                      0.8,
-                                      1.0
-                                    ],
+                                    stops: const [0.0, 0.2, 0.5, 0.8, 1.0],
                                   ),
                                 ),
                               ),
@@ -1078,29 +1088,24 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
 
                               // ── Quick Actions (glassmorphic) ──
                               SingleChildScrollView(
-                                scrollDirection:
-                                    Axis.horizontal,
+                                scrollDirection: Axis.horizontal,
                                 reverse: true,
                                 child: Row(
-                                  mainAxisSize:
-                                      MainAxisSize.min,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     _buildQuickAction(
-                                      icon: Icons
-                                          .person_add_rounded,
+                                      icon: Icons.person_add_rounded,
                                       label: 'طالب',
                                       color: isRamadan
                                           ? const Color(0xFFFFD54F)
                                           : const Color(0xFFFFB300),
                                       onTap: () async {
-                                        int? teacherId =
-                                            widget.teacherId;
+                                        int? teacherId = widget.teacherId;
                                         if (teacherId == null) {
                                           teacherId = await _tokenService
                                               .getTeacherId();
                                         }
-                                        if (teacherId != null &&
-                                            mounted) {
+                                        if (teacherId != null && mounted) {
                                           showDialog(
                                             context: context,
                                             builder: (context) =>
@@ -1113,8 +1118,7 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                                     ),
                                     const SizedBox(width: 8),
                                     _buildQuickAction(
-                                      icon: Icons
-                                          .notifications_active_rounded,
+                                      icon: Icons.notifications_active_rounded,
                                       label: 'اشتراكات',
                                       color: Colors.white,
                                       onTap: () {
@@ -1123,29 +1127,25 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                                           MaterialPageRoute(
                                             builder: (context) =>
                                                 TeacherSubscriptionsScreen(
-                                              teacherId: widget
-                                                  .teacherId,
+                                              teacherId: widget.teacherId,
                                             ),
                                           ),
                                         );
                                       },
                                     ),
-                                    if (AppConstants.data &&
-                                        !_isAssistant) ...[
+                                    if (AppConstants.data && !_isAssistant) ...[
                                       const SizedBox(width: 8),
                                       _buildQuickAction(
                                         icon: Icons.analytics_rounded,
                                         label: 'أرباح',
                                         color: const Color(0xFF69F0AE),
                                         onTap: () async {
-                                          int? teacherId =
-                                              widget.teacherId;
+                                          int? teacherId = widget.teacherId;
                                           if (teacherId == null) {
                                             teacherId = await _tokenService
                                                 .getTeacherId();
                                           }
-                                          if (teacherId != null &&
-                                              mounted) {
+                                          if (teacherId != null && mounted) {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
@@ -1153,8 +1153,7 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                                                     TeacherRevenueScreen(
                                                   teacherId: teacherId!,
                                                   teacherName:
-                                                      _teacherName ??
-                                                          'المعلم',
+                                                      _teacherName ?? 'المعلم',
                                                 ),
                                               ),
                                             );
@@ -1188,15 +1187,12 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
               bottom: _courses.isEmpty
                   ? null
                   : PreferredSize(
-                      preferredSize:
-                          const Size.fromHeight(48),
+                      preferredSize: const Size.fromHeight(56),
                       child: Container(
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: collapsedBg,
-                          borderRadius: const BorderRadius.vertical(
-                            bottom: Radius.circular(32),
-                          ),
+                        height: 56,
+                        padding: const EdgeInsets.only(bottom: 8),
+                        decoration: const BoxDecoration(
+                          color: Colors.transparent,
                         ),
                         child: Stack(
                           children: [
@@ -1212,76 +1208,62 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                             Padding(
                               padding: const EdgeInsets.symmetric(vertical: 6),
                               child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          padding:
-                              const EdgeInsets.symmetric(
-                                  horizontal: 16),
-                          children: _getUniqueStages()
-                              .map((stage) {
-                            final isSelected =
-                                (_selectedStage == null &&
-                                        stage == 'الكل') ||
-                                    _selectedStage == stage;
-                            return Padding(
-                              padding:
-                                  const EdgeInsets.only(
-                                      right: 8),
-                              child: ChoiceChip(
-                                label: Text(
-                                  stage,
-                                  style: GoogleFonts.inter(
-                                    fontWeight:
-                                        FontWeight.w600,
-                                    fontSize: 12,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : Colors.white
-                                            .withOpacity(
-                                                0.6),
-                                  ),
-                                ),
-                                selected: isSelected,
-                                onSelected: (selected) {
-                                  setState(() {
-                                    _selectedStage =
-                                        stage == 'الكل'
-                                            ? null
-                                            : stage;
-                                  });
-                                },
-                                selectedColor: Colors.white
-                                    .withOpacity(0.25),
-                                backgroundColor:
-                                    Colors.white
-                                        .withOpacity(0.08),
-                                side: BorderSide(
-                                  color: isSelected
-                                      ? Colors.white
-                                          .withOpacity(0.8)
-                                      : Colors.white
-                                          .withOpacity(
-                                              0.12),
-                                  width: isSelected
-                                      ? 1.5
-                                      : 0.5,
-                                ),
-                                shape:
-                                    RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(
-                                          20),
-                                ),
-                                padding: const EdgeInsets
-                                    .symmetric(
-                                    horizontal: 12,
-                                    vertical: 0),
-                                showCheckmark: false,
-                                visualDensity:
-                                    VisualDensity.compact,
+                                scrollDirection: Axis.horizontal,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
+                                children: _getUniqueStages().map((stage) {
+                                  final isDark = Theme.of(context).brightness ==
+                                      Brightness.dark;
+                                  final isSelected = (_selectedStage == null &&
+                                          stage == 'الكل') ||
+                                      _selectedStage == stage;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: ChoiceChip(
+                                      label: Text(
+                                        stage,
+                                        style: GoogleFonts.inter(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 12,
+                                          color: isSelected
+                                              ? Colors.white
+                                              : Theme.of(context)
+                                                  .textTheme
+                                                  .bodyMedium
+                                                  ?.color,
+                                        ),
+                                      ),
+                                      selected: isSelected,
+                                      onSelected: (selected) {
+                                        setState(() {
+                                          _selectedStage =
+                                              stage == 'الكل' ? null : stage;
+                                        });
+                                      },
+                                      selectedColor: AppColors.primary,
+                                      backgroundColor: isDark
+                                          ? Colors.white.withOpacity(0.08)
+                                          : Colors.black.withOpacity(0.05),
+                                      side: BorderSide(
+                                        color: isSelected
+                                            ? AppColors.primary
+                                            : (isDark
+                                                ? Colors.white.withOpacity(0.12)
+                                                : Colors.black
+                                                    .withOpacity(0.1)),
+                                        width: isSelected ? 1.5 : 0.5,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 0),
+                                      showCheckmark: false,
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                  );
+                                }).toList(),
                               ),
-                            );
-                          }).toList(),
-                        ),
                             ),
                           ],
                         ),
@@ -1293,16 +1275,14 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
             if (_isLoading)
               const SliverFillRemaining(
                 child: Center(
-                  child: CircularProgressIndicator(
-                      color: AppColors.primary),
+                  child: CircularProgressIndicator(color: AppColors.primary),
                 ),
               )
             else if (filteredCourses.isEmpty)
               SliverFillRemaining(
                 child: Center(
                   child: Column(
-                    mainAxisAlignment:
-                        MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
                         padding: const EdgeInsets.all(24),
@@ -1312,14 +1292,11 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                               .surface
                               .withOpacity(0.5),
                           shape: BoxShape.circle,
-                          border: Border.all(
-                              color:
-                                  AppColors.glassBorder),
+                          border: Border.all(color: AppColors.glassBorder),
                         ),
                         child: ShaderMask(
                           shaderCallback: (bounds) =>
-                              AppColors.primaryGradient
-                                  .createShader(bounds),
+                              AppColors.primaryGradient.createShader(bounds),
                           child: const Icon(
                             Icons.class_outlined,
                             size: 48,
@@ -1333,20 +1310,14 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                         style: GoogleFonts.outfit(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
-                          color: Theme.of(context)
-                              .textTheme
-                              .bodyLarge
-                              ?.color,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'اضغط على الزر أدناه لإضافة دورة',
                         style: GoogleFonts.inter(
-                          color: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.color,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
                           fontSize: 14,
                         ),
                       ),
@@ -1358,13 +1329,10 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
               SliverPadding(
                 padding: const EdgeInsets.all(16),
                 sliver: SliverList(
-                  delegate:
-                      SliverChildBuilderDelegate(
+                  delegate: SliverChildBuilderDelegate(
                     (context, index) =>
-                        _buildCourseCard(
-                            filteredCourses[index]),
-                    childCount:
-                        filteredCourses.length,
+                        _buildCourseCard(filteredCourses[index]),
+                    childCount: filteredCourses.length,
                   ),
                 ),
               ),
@@ -1395,35 +1363,41 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.2),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color, size: 19),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                style: GoogleFonts.inter(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w600,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.15),
+                  width: 0.5,
                 ),
               ),
-            ],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, color: color, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    label,
+                    style: GoogleFonts.inter(
+                      color: Colors.white.withOpacity(0.95),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -1432,6 +1406,7 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
 
   Future<void> _showEditCourseDialog(Course course) async {
     final titleController = TextEditingController(text: course.title);
+    final descriptionController = TextEditingController(text: course.description ?? '');
     final gradeYearController = TextEditingController(
       text: course.gradeYear.toString(),
     );
@@ -1477,7 +1452,10 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
             ),
             title: Text(
               'تعديل الدورة',
-              style: GoogleFonts.outfit(color: AppColors.textPrimary),
+              style: GoogleFonts.outfit(
+                color: Theme.of(context).textTheme.titleLarge?.color,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             content: SingleChildScrollView(
               child: Column(
@@ -1487,9 +1465,28 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                     controller: titleController,
                     decoration: InputDecoration(
                       labelText: 'عنوان الدورة',
-                      labelStyle: TextStyle(color: AppColors.textSecondary),
+                      labelStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
                     ),
-                    style: TextStyle(color: AppColors.textPrimary),
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  TextField(
+                    controller: descriptionController,
+                    decoration: InputDecoration(
+                      labelText: 'الوصف (اختياري)',
+                      labelStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
+                    ),
+                    maxLines: 3,
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
                   ),
                   const SizedBox(height: 16),
 
@@ -1550,16 +1547,27 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                     dropdownColor: Theme.of(context).cardColor,
                     decoration: InputDecoration(
                       labelText: 'المرحلة الدراسية',
-                      labelStyle: TextStyle(color: AppColors.textSecondary),
+                      labelStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
                       enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: AppColors.textSecondary),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
                       ),
                     ),
-                    style: GoogleFonts.inter(color: AppColors.textPrimary),
+                    style: GoogleFonts.inter(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
                     items: _educationStages.map((stage) {
                       return DropdownMenuItem<int>(
                         value: stage['id'],
-                        child: Text(stage['name'] ?? ''),
+                        child: Text(
+                          stage['name'] ?? '',
+                          style: TextStyle(
+                            color: Theme.of(context).textTheme.bodyLarge?.color,
+                          ),
+                        ),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -1571,10 +1579,14 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                     controller: gradeYearController,
                     decoration: InputDecoration(
                       labelText: 'السنة الدراسية',
-                      labelStyle: TextStyle(color: AppColors.textSecondary),
+                      labelStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
                     ),
                     keyboardType: TextInputType.number,
-                    style: TextStyle(color: AppColors.textPrimary),
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
                   ),
                   if (AppConstants.data) ...[
                     const SizedBox(height: 16),
@@ -1582,20 +1594,28 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                       controller: priceController,
                       decoration: InputDecoration(
                         labelText: 'السعر',
-                        labelStyle: TextStyle(color: AppColors.textSecondary),
+                        labelStyle: TextStyle(
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                        ),
                       ),
                       keyboardType: TextInputType.number,
-                      style: TextStyle(color: AppColors.textPrimary),
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: discountedPriceController,
                       decoration: InputDecoration(
                         labelText: 'السعر المخفض',
-                        labelStyle: TextStyle(color: AppColors.textSecondary),
+                        labelStyle: TextStyle(
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                        ),
                       ),
                       keyboardType: TextInputType.number,
-                      style: TextStyle(color: AppColors.textPrimary),
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                      ),
                     ),
                   ],
                 ],
@@ -1619,6 +1639,7 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
 
                     final request = CourseRequest(
                       title: titleController.text,
+                      description: descriptionController.text.isNotEmpty ? descriptionController.text : null,
                       gradeYear: int.parse(
                         _convertArabicToEnglishNumbers(
                           gradeYearController.text,
@@ -1968,6 +1989,24 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      if (course.description != null &&
+                          course.description!.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          course.description!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            color: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.color
+                                ?.withOpacity(0.7),
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
                       if (AppConstants.data) ...[
                         const SizedBox(height: 12),
                         Row(

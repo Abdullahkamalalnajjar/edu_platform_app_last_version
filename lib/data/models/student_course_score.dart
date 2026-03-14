@@ -3,6 +3,7 @@ class StudentCourseScore {
   final String studentName;
   final String studentEmail;
   final String? parentPhone;
+  final String? studentPhone;
   final double totalScore;
   final double maxScore;
   final double percentage;
@@ -14,6 +15,7 @@ class StudentCourseScore {
     required this.studentName,
     required this.studentEmail,
     this.parentPhone,
+    this.studentPhone,
     required this.totalScore,
     required this.maxScore,
     required this.percentage,
@@ -27,6 +29,7 @@ class StudentCourseScore {
       studentName: json['studentName'] ?? '',
       studentEmail: json['studentEmail'] ?? '',
       parentPhone: json['parentPhone'],
+      studentPhone: json['studentPhone'],
       totalScore: (json['totalScore'] ?? 0).toDouble(),
       maxScore: (json['maxScore'] ?? 0).toDouble(),
       percentage: (json['percentage'] ?? 0).toDouble(),
@@ -41,6 +44,7 @@ class StudentCourseScore {
       'studentName': studentName,
       'studentEmail': studentEmail,
       'parentPhone': parentPhone,
+      'studentPhone': studentPhone,
       'totalScore': totalScore,
       'maxScore': maxScore,
       'percentage': percentage,

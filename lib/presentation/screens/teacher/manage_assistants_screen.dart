@@ -71,7 +71,7 @@ class _ManageAssistantsScreenState extends State<ManageAssistantsScreen> {
     await showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'إضافة مساعد جديد',
@@ -173,10 +173,12 @@ class _ManageAssistantsScreenState extends State<ManageAssistantsScreen> {
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
-      style: const TextStyle(color: AppColors.textPrimary),
+      style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: AppColors.textSecondary),
+        labelStyle: TextStyle(
+          color: Theme.of(context).textTheme.bodyMedium?.color,
+        ),
         prefixIcon: Icon(icon, color: AppColors.primary),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -238,15 +240,15 @@ class _ManageAssistantsScreenState extends State<ManageAssistantsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
+        title: Text(
           'حذف المساعد',
-          style: TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: Theme.of(context).textTheme.titleLarge?.color),
         ),
         content: Text(
           'هل أنت متأكد من حذف ${assistant.fullName}؟',
-          style: const TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
         ),
         actions: [
           TextButton(
@@ -297,7 +299,7 @@ class _ManageAssistantsScreenState extends State<ManageAssistantsScreen> {
     await showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'تعديل بيانات المساعد',

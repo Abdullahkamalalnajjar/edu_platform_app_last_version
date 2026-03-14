@@ -104,10 +104,15 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> {
     setState(() => _isLoading = false);
 
     if (mounted) {
+      print('=== UI: updateAppInfo Response ===');
+      print('Succeeded: ${response.succeeded}');
+      print('Message: ${response.message}');
+      print('Data: ${response.data}');
+
       if (response.succeeded) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Updated successfully'),
+            content: Text(response.message),
             backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(

@@ -9,6 +9,8 @@ import 'package:edu_platform_app/data/models/course_models.dart';
 import '../shared/course_details/course_details_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:edu_platform_app/core/constants/app_constants.dart';
+import 'package:edu_platform_app/data/services/subscription_service.dart';
+import 'package:edu_platform_app/data/services/token_service.dart';
 
 class StudentCoursesScreen extends StatefulWidget {
   final int subjectId;
@@ -29,14 +31,39 @@ class StudentCoursesScreen extends StatefulWidget {
 class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
   final _subjectService = SubjectService();
   final _courseService = CourseService();
+  final _subscriptionService = SubscriptionService();
+  final _tokenService = TokenService();
   bool _isLoading = true;
   List<Map<String, dynamic>> _teachersWithCourses = [];
   String? _error;
+  Set<int> _subscribedCourseIds = {};
+  Set<int> _pendingCourseIds = {};
 
   @override
   void initState() {
     super.initState();
     _fetchCourses();
+    _checkStudentSubscriptions();
+  }
+
+  Future<void> _checkStudentSubscriptions() async {
+    final studentId = await _tokenService.getUserId();
+    if (studentId == null) return;
+
+    final response =
+        await _subscriptionService.getStudentSubscriptions(studentId);
+    if (mounted && response.succeeded && response.data != null) {
+      setState(() {
+        _subscribedCourseIds = response.data!
+            .where((sub) => sub.status == 'Approved')
+            .map((sub) => sub.courseId)
+            .toSet();
+        _pendingCourseIds = response.data!
+            .where((sub) => sub.status == 'Pending')
+            .map((sub) => sub.courseId)
+            .toSet();
+      });
+    }
   }
 
   Future<void> _fetchCourses() async {
@@ -380,7 +407,8 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
           borderRadius: BorderRadius.circular(24),
           color: Theme.of(context).cardColor,
           border: Border.all(
-            color: Theme.of(context).dividerColor.withOpacity(isDark ? 0.1 : 0.5),
+            color:
+                Theme.of(context).dividerColor.withOpacity(isDark ? 0.1 : 0.5),
           ),
           boxShadow: [
             BoxShadow(
@@ -429,6 +457,19 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
                         height: 1.2,
                       ),
                     ),
+                    if ((course['description'] as String?)?.isNotEmpty == true) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        course['description'],
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -477,33 +518,137 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
                           ),
 
                         // Action Buttons
-                        Row(
-                          children: [
-                            if (whatsAppNumber != null &&
-                                whatsAppNumber.isNotEmpty)
-                              _buildActionButton(
-                                icon: FontAwesomeIcons.whatsapp,
-                                color: const Color(0xFF25D366),
-                                onTap: () async {
-                                  final uri = Uri.parse(
-                                      'https://wa.me/$whatsAppNumber');
-                                  if (await canLaunchUrl(uri)) {
-                                    await launchUrl(uri,
-                                        mode: LaunchMode.externalApplication);
-                                  }
-                                },
-                                isFA: true,
-                              ),
-                            const SizedBox(width: 8),
-                            _buildActionButton(
-                              icon: AppConstants.data
-                                  ? Icons.add_rounded
-                                  : Icons.person_add_rounded,
-                              color: Theme.of(context).primaryColor,
-                              onTap: () => _subscribeToCourse(course['id']),
+                        if (_subscribedCourseIds.contains(course['id']))
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
                             ),
-                          ],
-                        ),
+                            decoration: BoxDecoration(
+                              color: AppColors.success.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.check_circle_outline_rounded,
+                                  color: AppColors.success,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'تم الاشتراك',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: AppColors.success,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else if (_pendingCourseIds.contains(course['id']))
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.access_time_rounded,
+                                  color: Colors.orange,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'في انتظار الموافقة',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: Colors.orange,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          Row(
+                            children: [
+                              if (whatsAppNumber != null &&
+                                  whatsAppNumber.isNotEmpty)
+                                _buildActionButton(
+                                  icon: FontAwesomeIcons.whatsapp,
+                                  color: const Color(0xFF25D366),
+                                  onTap: () async {
+                                    final uri = Uri.parse(
+                                        'https://wa.me/$whatsAppNumber');
+                                    if (await canLaunchUrl(uri)) {
+                                      await launchUrl(uri,
+                                          mode: LaunchMode.externalApplication);
+                                    }
+                                  },
+                                  isFA: true,
+                                ),
+                              const SizedBox(width: 8),
+                              Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => _subscribeToCourse(course['id']),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? Colors.transparent
+                                          : Theme.of(context)
+                                              .primaryColor
+                                              .withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Theme.of(context).primaryColor,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          AppConstants.data
+                                              ? Icons.add_rounded
+                                              : Icons.person_add_rounded,
+                                          color: isDark
+                                              ? Colors.white
+                                              : Theme.of(context).primaryColor,
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          AppConstants.data
+                                              ? 'إشتراك'
+                                              : 'إنضم إلينا',
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark
+                                                ? Colors.white
+                                                : Theme.of(context).primaryColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                       ],
                     ),
                   ],
@@ -581,6 +726,9 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
 
     if (mounted) {
       if (response.succeeded) {
+        setState(() {
+          _pendingCourseIds.add(courseId);
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('في انتظار قبول المدرس'),

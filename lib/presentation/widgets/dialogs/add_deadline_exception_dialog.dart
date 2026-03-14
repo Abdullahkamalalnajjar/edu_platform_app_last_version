@@ -186,12 +186,12 @@ class _AddDeadlineExceptionDialogState
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).cardColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Text(
         'إضافة استثناء',
         style: GoogleFonts.outfit(
-          color: AppColors.textPrimary,
+          color: Theme.of(context).textTheme.titleLarge?.color,
           fontWeight: FontWeight.bold,
         ),
         textAlign: TextAlign.center,
@@ -227,7 +227,7 @@ class _AddDeadlineExceptionDialogState
                           hint: Text(
                             'اختر الطالب',
                             style: GoogleFonts.inter(
-                              color: AppColors.textSecondary,
+                              color: Theme.of(context).textTheme.bodyMedium?.color,
                             ),
                           ),
                           value: _selectedStudent,
@@ -238,7 +238,7 @@ class _AddDeadlineExceptionDialogState
                               child: Text(
                                 student.studentName,
                                 style: GoogleFonts.inter(
-                                  color: AppColors.textPrimary,
+                                  color: Theme.of(context).textTheme.bodyLarge?.color,
                                 ),
                               ),
                             );
@@ -276,8 +276,8 @@ class _AddDeadlineExceptionDialogState
                                     : '${_selectedDeadline!.year}/${_selectedDeadline!.month.toString().padLeft(2, '0')}/${_selectedDeadline!.day.toString().padLeft(2, '0')} - ${_selectedDeadline!.hour.toString().padLeft(2, '0')}:${_selectedDeadline!.minute.toString().padLeft(2, '0')}',
                                 style: GoogleFonts.inter(
                                   color: _selectedDeadline == null
-                                      ? AppColors.textSecondary
-                                      : AppColors.textPrimary,
+                                      ? Theme.of(context).textTheme.bodyMedium?.color
+                                      : Theme.of(context).textTheme.bodyLarge?.color,
                                   fontSize: 14,
                                 ),
                               ),

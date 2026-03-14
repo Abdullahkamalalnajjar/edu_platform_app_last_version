@@ -12,12 +12,14 @@ class ExamSubmissionsScreen extends StatefulWidget {
   final int lectureId;
   final String lectureTitle;
   final int? examId;
+  final int? courseId;
 
   const ExamSubmissionsScreen({
     super.key,
     required this.lectureId,
     required this.lectureTitle,
     this.examId,
+    this.courseId,
   });
 
   @override
@@ -29,12 +31,70 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
   final _teacherService = TeacherService();
   bool _isLoading = true;
   List<ExamSubmission> _submissions = [];
+  List<ExamSubmission> _filteredSubmissions = [];
   String? _error;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  NonSubmittedStudentsResponse? _nonSubmittedResponse;
+  bool _showingNonSubmittedOnly = false;
 
   @override
   void initState() {
     super.initState();
     _fetchSubmissions();
+    _fetchNonSubmittedStats();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  Future<void> _fetchNonSubmittedStats() async {
+    if (widget.examId == null || widget.courseId == null) return;
+
+    final response = await _courseService.getNonSubmittedStudents(
+      examId: widget.examId!,
+      courseId: widget.courseId!,
+    );
+
+    if (mounted && response.succeeded) {
+      setState(() {
+        _nonSubmittedResponse = response.data;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text.trim().toLowerCase();
+      _applySearch();
+    });
+  }
+
+  void _applySearch() {
+    List<ExamSubmission> baseList = List.from(_submissions);
+
+    if (_showingNonSubmittedOnly) {
+      // This is tricky because _submissions only contains those who DID submit.
+      // We might need to handle the display separately or merge them.
+    }
+
+    if (_searchQuery.isEmpty) {
+      _filteredSubmissions = baseList;
+    } else {
+      _filteredSubmissions = baseList.where((s) {
+        final name = s.studentName.toLowerCase();
+        final email = (s.studentEmail ?? '').toLowerCase();
+        final phone = (s.studentPhoneNumber ?? '').toLowerCase();
+        return name.contains(_searchQuery) ||
+            email.contains(_searchQuery) ||
+            phone.contains(_searchQuery);
+      }).toList();
+    }
   }
 
   Future<void> _fetchSubmissions() async {
@@ -49,6 +109,7 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
     if (response.succeeded) {
       setState(() {
         _submissions = response.data ?? [];
+        _applySearch();
         _isLoading = false;
       });
     } else {
@@ -247,62 +308,70 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
     String label,
     String value,
     IconData icon,
-    Color color,
-  ) {
+    Color color, {
+    VoidCallback? onTap,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceLight : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: color.withOpacity(0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceLight : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: color.withOpacity(0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: GoogleFonts.outfit(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : AppColors.textPrimaryLight,
+          ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 20),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : AppColors.textPrimaryLight,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 2),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildSummaryCards() {
-    final total = _submissions.length;
-    final pending =
+    final submittedCount =
+        _nonSubmittedResponse?.submittedCount ?? _submissions.length;
+    final totalEnrolled =
+        _nonSubmittedResponse?.totalEnrolledStudents ?? _submissions.length;
+    final nonSubmitted = _nonSubmittedResponse?.nonSubmittedCount ?? 0;
+    final pendingCount =
         _submissions.where((s) => s.pendingGradingAnswers > 0).length;
-    final graded = total - pending;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -310,31 +379,221 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
         children: [
           Expanded(
             child: _buildStatItem(
-              'كل الطلاب',
-              total.toString(),
-              Icons.people_outline,
-              AppColors.primary,
+              'إجمالي الطلاب',
+              totalEnrolled.toString(),
+              Icons.people_alt,
+              AppColors.info,
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 6),
           Expanded(
             child: _buildStatItem(
-              'بانتظار التصحيح',
-              pending.toString(),
-              Icons.pending_outlined,
-              AppColors.warning,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _buildStatItem(
-              'تم التصحيح',
-              graded.toString(),
+              'تم التسليم',
+              submittedCount.toString(),
               Icons.check_circle_outline,
               AppColors.success,
             ),
           ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _buildStatItem(
+              'لم يسلموا',
+              nonSubmitted.toString(),
+              Icons.error_outline,
+              AppColors.error,
+              onTap: nonSubmitted > 0 ? _showNonSubmittedStudents : null,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _buildStatItem(
+              'بانتظار التصحيح',
+              pendingCount.toString(),
+              Icons.pending_outlined,
+              AppColors.warning,
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  void _showNonSubmittedStudents() {
+    if (_nonSubmittedResponse == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  children: [
+                    const Icon(Icons.people_outline_rounded,
+                        color: AppColors.error),
+                    const SizedBox(width: 12),
+                    Text(
+                      'طلاب لم يسلموا (${_nonSubmittedResponse!.nonSubmittedCount})',
+                      style: GoogleFonts.outfit(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _nonSubmittedResponse!.nonSubmittedStudents.length,
+                  itemBuilder: (context, index) {
+                    final student =
+                        _nonSubmittedResponse!.nonSubmittedStudents[index];
+                    return _buildNonSubmittedStudentCard(student);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNonSubmittedStudentCard(NonSubmittedStudentDto student) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppColors.glassBorder),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        title: Text(
+          student.studentName,
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Text(student.studentEmail,
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _buildPhoneChip(
+                    student.studentPhone, 'الطالب', Icons.phone_iphone),
+                const SizedBox(width: 8),
+                _buildPhoneChip(
+                    student.parentPhone, 'ولي الأمر', Icons.family_restroom),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPhoneChip(String phone, String label, IconData icon) {
+    if (phone.isEmpty) return const SizedBox();
+    return InkWell(
+      onTap: () => _makeCall(phone),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: AppColors.primary),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _makeCall(String phoneNumber) async {
+    final uri = Uri.parse('tel:$phoneNumber');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: TextField(
+        controller: _searchController,
+        textDirection: TextDirection.rtl,
+        decoration: InputDecoration(
+          hintText: 'ابحث باسم الطالب، الإيميل، أو رقم الهاتف...',
+          hintStyle: GoogleFonts.inter(
+            fontSize: 13,
+            color: AppColors.textSecondary,
+          ),
+          prefixIcon:
+              const Icon(Icons.search_rounded, color: AppColors.textSecondary),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.close_rounded,
+                      color: AppColors.textSecondary),
+                  onPressed: () {
+                    _searchController.clear();
+                  },
+                )
+              : null,
+          filled: true,
+          fillColor: Theme.of(context).cardColor,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: AppColors.glassBorder),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: AppColors.glassBorder),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          ),
+        ),
       ),
     );
   }
@@ -411,17 +670,46 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
                     ],
                   ),
                 )
-              : _submissions.isEmpty
-                  ? Center(
-                      child: Text(
-                        'لا يوجد تسليمات بعد',
-                        style:
-                            GoogleFonts.inter(color: AppColors.textSecondary),
-                      ),
-                    )
-                  : Column(
-                      children: [
-                        _buildSummaryCards(),
+              : Column(
+                  children: [
+                    _buildSummaryCards(),
+                    if (_submissions.isEmpty)
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            'لا يوجد تسليمات بعد',
+                            style: GoogleFonts.inter(
+                                color: AppColors.textSecondary),
+                          ),
+                        ),
+                      )
+                    else ...[
+                      _buildSearchBar(),
+                      if (_filteredSubmissions.isEmpty)
+                        Expanded(
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.search_off_rounded,
+                                  size: 56,
+                                  color:
+                                      AppColors.textSecondary.withOpacity(0.5),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'لا توجد نتائج للبحث',
+                                  style: GoogleFonts.inter(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      else
                         Expanded(
                           child: LayoutBuilder(
                             builder: (context, constraints) {
@@ -439,9 +727,10 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
                                       crossAxisSpacing: 16,
                                       mainAxisSpacing: 16,
                                     ),
-                                    itemCount: _submissions.length,
+                                    itemCount: _filteredSubmissions.length,
                                     itemBuilder: (context, index) {
-                                      final submission = _submissions[index];
+                                      final submission =
+                                          _filteredSubmissions[index];
                                       return _buildSubmissionCard(submission);
                                     },
                                   ),
@@ -453,9 +742,10 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 16,
                                     ),
-                                    itemCount: _submissions.length,
+                                    itemCount: _filteredSubmissions.length,
                                     itemBuilder: (context, index) {
-                                      final submission = _submissions[index];
+                                      final submission =
+                                          _filteredSubmissions[index];
                                       return _buildSubmissionCard(submission);
                                     },
                                   ),
@@ -464,8 +754,9 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
                             },
                           ),
                         ),
-                      ],
-                    ),
+                    ],
+                  ],
+                ),
     );
   }
 
@@ -738,7 +1029,8 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
             ),
             if (submission.pendingGradingAnswers > 0)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: AppColors.warning.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -754,7 +1046,8 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
               )
             else
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: AppColors.success.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),

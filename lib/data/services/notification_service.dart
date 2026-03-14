@@ -567,6 +567,7 @@ class NotificationService {
 
     final lectureId = int.tryParse(data['lectureId']?.toString() ?? '');
     final examId = int.tryParse(data['examId']?.toString() ?? '');
+    final courseId = int.tryParse(data['courseId']?.toString() ?? '');
     final lectureName = data['lectureName'] ?? data['examTitle'] ?? 'الاختبار';
 
     if (lectureId == null) {
@@ -581,6 +582,7 @@ class NotificationService {
         lectureId: lectureId,
         lectureTitle: lectureName,
         examId: examId,
+        courseId: courseId,
       ),
     );
   }

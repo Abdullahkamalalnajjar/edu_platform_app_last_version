@@ -41,6 +41,7 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
   int? _selectedStageId;
   bool _isLoading = false;
   Set<int> _subscribedCourseIds = {}; // Track subscribed courses
+  Set<int> _pendingCourseIds = {}; // Track pending courses
 
   @override
   void initState() {
@@ -97,6 +98,10 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
       setState(() {
         _subscribedCourseIds = approvedResponse.data!
             .where((sub) => sub.status == 'Approved')
+            .map((sub) => sub.courseId)
+            .toSet();
+        _pendingCourseIds = approvedResponse.data!
+            .where((sub) => sub.status == 'Pending')
             .map((sub) => sub.courseId)
             .toSet();
       });
@@ -214,6 +219,9 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
 
       if (mounted && context.mounted) {
         if (response.succeeded) {
+          setState(() {
+            _pendingCourseIds.add(courseId);
+          });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('في انتظار قبول المدرس'),
@@ -738,7 +746,8 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: Theme.of(context).dividerColor.withOpacity(isDark ? 0.1 : 0.5),
+            color:
+                Theme.of(context).dividerColor.withOpacity(isDark ? 0.1 : 0.5),
           ),
           boxShadow: [
             BoxShadow(
@@ -760,14 +769,15 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
                 decoration: BoxDecoration(
                   color: Theme.of(context).scaffoldBackgroundColor,
                 ),
-                child: (courseImage != null && courseImage.toString().isNotEmpty)
-                    ? Image.network(
-                        courseImage.toString(),
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            _buildImagePlaceholder(),
-                      )
-                    : _buildImagePlaceholder(),
+                child:
+                    (courseImage != null && courseImage.toString().isNotEmpty)
+                        ? Image.network(
+                            courseImage.toString(),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildImagePlaceholder(),
+                          )
+                        : _buildImagePlaceholder(),
               ),
 
               // 2. Info Section (Below Image)
@@ -787,8 +797,21 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
                         height: 1.2,
                       ),
                     ),
+                    if ((course['description'] as String?)?.isNotEmpty == true) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        course['description'],
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
-                    
+
                     // Stats Row (Lectures)
                     Row(
                       children: [
@@ -802,15 +825,16 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
                           '${lectures.length} محاضرة',
                           style: GoogleFonts.inter(
                             fontSize: 12,
-                            color: Theme.of(context).textTheme.bodyMedium?.color,
+                            color:
+                                Theme.of(context).textTheme.bodyMedium?.color,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -824,7 +848,8 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
 
                               if (price <= 0) return const SizedBox.shrink();
 
-                              if (discountedPrice > 0 && discountedPrice < price) {
+                              if (discountedPrice > 0 &&
+                                  discountedPrice < price) {
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -859,49 +884,7 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
                           ),
 
                         // Action Buttons
-                        if (!_subscribedCourseIds.contains(course['id']))
-                          Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: () => _subscribeToCourse(course['id']),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).primaryColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: Theme.of(context).primaryColor.withOpacity(0.2),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      AppConstants.data
-                                          ? Icons.add_rounded
-                                          : Icons.person_add_rounded,
-                                      color: Theme.of(context).primaryColor,
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      AppConstants.data ? 'اشتراك' : 'انضم الينا',
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(context).primaryColor,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          )
-                        else
+                        if (_subscribedCourseIds.contains(course['id']))
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -928,6 +911,88 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
                                   ),
                                 ),
                               ],
+                            ),
+                          )
+                        else if (_pendingCourseIds.contains(course['id']))
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.access_time_rounded,
+                                  color: Colors.orange,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'في انتظار الموافقة',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: Colors.orange,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () => _subscribeToCourse(course['id']),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? const Color.fromARGB(255, 187, 33, 33)
+                                      : Theme.of(context)
+                                          .primaryColor
+                                          .withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Theme.of(context).primaryColor,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      AppConstants.data
+                                          ? Icons.add_rounded
+                                          : Icons.person_add_rounded,
+                                      color: isDark
+                                          ? Colors.white
+                                          : Theme.of(context).primaryColor,
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      AppConstants.data
+                                          ? 'اشتراك'
+                                          : 'انضم الينا',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark
+                                            ? Colors.white
+                                            : Theme.of(context).primaryColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
                       ],

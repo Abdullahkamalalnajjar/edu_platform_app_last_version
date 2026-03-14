@@ -559,7 +559,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.cairo(
+                  style: GoogleFonts.tajawal(
                     fontSize: 12,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                     color: isSelected
@@ -690,7 +690,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 // Section Header
                 Text(
                   'نظرة عامة على الإحصائيات',
-                  style: GoogleFonts.cairo(
+                  style: GoogleFonts.tajawal(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).textTheme.headlineSmall?.color,
@@ -825,7 +825,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.cairo(
+                style: GoogleFonts.tajawal(
                   fontSize: 13,
                   color: AppColors.textSecondary,
                   fontWeight: FontWeight.w600,
@@ -851,7 +851,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.cairo(
+                      style: GoogleFonts.tajawal(
                         fontSize: 11,
                         color: color,
                         fontWeight: FontWeight.bold,
@@ -877,7 +877,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           children: [
             Text(
               'إدارة المستخدمين',
-              style: GoogleFonts.cairo(
+              style: GoogleFonts.tajawal(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -914,7 +914,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             // // Quick Actions
             // Text(
             //   'إجراءات سريعة',
-            //   style: GoogleFonts.cairo(
+            //   style: GoogleFonts.tajawal(
             //     fontSize: 18,
             //     fontWeight: FontWeight.bold,
             //     color: Theme.of(context).textTheme.headlineSmall?.color,
@@ -1008,7 +1008,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.cairo(
+                    style: GoogleFonts.tajawal(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
@@ -1056,7 +1056,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           children: [
             Text(
               'إعدادات النظام',
-              style: GoogleFonts.cairo(
+              style: GoogleFonts.tajawal(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -1151,7 +1151,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.cairo(
+                    style: GoogleFonts.tajawal(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
@@ -1160,7 +1160,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: GoogleFonts.cairo(
+                    style: GoogleFonts.tajawal(
                       fontSize: 12,
                       color: AppColors.textSecondary,
                     ),
