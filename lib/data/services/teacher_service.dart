@@ -165,7 +165,9 @@ class TeacherService {
     required String phoneNumber,
     required String governorate,
     required String city,
-    required int subjectId, // Added subjectId
+    required int subjectId,
+    String? firstName,
+    String? lastName,
     String? facebookUrl,
     String? telegramUrl,
     String? whatsAppNumber,
@@ -187,10 +189,17 @@ class TeacherService {
 
       // Add fields
       request.fields['TeacherId'] = teacherId.toString();
-      request.fields['SubjectId'] = subjectId.toString(); // Add SubjectId field
+      request.fields['SubjectId'] = subjectId.toString();
       request.fields['PhoneNumber'] = phoneNumber;
       request.fields['Governorate'] = governorate;
       request.fields['City'] = city;
+
+      if (firstName != null && firstName.isNotEmpty) {
+        request.fields['FirstName'] = firstName;
+      }
+      if (lastName != null && lastName.isNotEmpty) {
+        request.fields['LastName'] = lastName;
+      }
 
       if (facebookUrl != null && facebookUrl.isNotEmpty) {
         request.fields['FacebookUrl'] = facebookUrl;

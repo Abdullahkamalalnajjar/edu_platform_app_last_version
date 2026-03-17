@@ -32,6 +32,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   final _tokenService = TokenService();
   final _imagePicker = ImagePicker();
 
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _studentPhoneController = TextEditingController();
   final _parentPhoneController = TextEditingController();
   final _cityController = TextEditingController();
@@ -51,6 +53,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
   @override
   void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _studentPhoneController.dispose();
     _parentPhoneController.dispose();
     _cityController.dispose();
@@ -81,11 +85,13 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         }
 
         setState(() {
+          _firstNameController.text = data['firstName'] ?? '';
+          _lastNameController.text = data['lastName'] ?? '';
           _studentPhoneController.text = data['studentPhoneNumber'] ?? '';
           _parentPhoneController.text = data['parentPhoneNumber'] ?? '';
           _cityController.text = data['city'] ?? '';
           _currentPhotoUrl =
-              data['studentProfileImageUrl']; // Store current photo URL
+              data['studentProfileImageUrl'];
 
           final gov = data['governorate'];
           // Set governorate if it exists in the list, otherwise set it anyway
@@ -220,7 +226,9 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         parentPhoneNumber: _parentPhoneController.text,
         governorate: _selectedGovernorate!,
         city: _cityController.text,
-        profileImagePath: _profileImage?.path, // Include image path
+        firstName: _firstNameController.text,
+        lastName: _lastNameController.text,
+        profileImagePath: _profileImage?.path,
       );
     }
 
@@ -416,6 +424,20 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                   delay: const Duration(milliseconds: 200),
                   child: Column(
                     children: [
+                      CustomTextField(
+                        controller: _firstNameController,
+                        hintText: 'الاسم الأول',
+                        prefixIcon: Icons.person_outline_rounded,
+                        validator: (v) => v!.isEmpty ? 'مطلوب' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      CustomTextField(
+                        controller: _lastNameController,
+                        hintText: 'الاسم الأخير',
+                        prefixIcon: Icons.person_rounded,
+                        validator: (v) => v!.isEmpty ? 'مطلوب' : null,
+                      ),
+                      const SizedBox(height: 16),
                       CustomTextField(
                         controller: _studentPhoneController,
                         hintText: 'رقم الهاتف الخاص بك',

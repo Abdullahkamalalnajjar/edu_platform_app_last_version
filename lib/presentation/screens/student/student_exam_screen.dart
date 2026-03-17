@@ -1859,146 +1859,6 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Show correct answer image in review mode if available AND exam is graded
-            if (_isReviewing &&
-                (widget.isTeacher || _isGraded) &&
-                question.correctAnswerImageUrl != null &&
-                question.correctAnswerImageUrl!.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.check_circle_outline_rounded,
-                        color: AppColors.success,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'الإجابة الصحيحة:',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.success,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => Dialog(
-                          backgroundColor: Colors.transparent,
-                          insetPadding: EdgeInsets.zero,
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              GestureDetector(
-                                onTap: () => Navigator.pop(context),
-                                child: Container(color: Colors.black87),
-                              ),
-                              InteractiveViewer(
-                                panEnabled: true,
-                                minScale: 0.5,
-                                maxScale: 4.0,
-                                child: Center(
-                                  child: Image.network(
-                                    question.correctAnswerImageUrl!,
-                                    fit: BoxFit.contain,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            const Icon(
-                                      Icons.broken_image,
-                                      color: Colors.white,
-                                      size: 64,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                top: 40,
-                                right: 20,
-                                child: IconButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  icon: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black54,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: const Icon(
-                                      Icons.close,
-                                      color: Colors.white,
-                                      size: 24,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.success.withOpacity(0.3),
-                          width: 2,
-                        ),
-                      ),
-                      child: Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.network(
-                              question.correctAnswerImageUrl!,
-                              height: 200,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Container(
-                                height: 200,
-                                color: AppColors.surfaceLight,
-                                child: Center(
-                                  child: Icon(
-                                    Icons.broken_image,
-                                    color: Theme.of(
-                                      context,
-                                    ).textTheme.bodyMedium?.color,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 8,
-                            right: 8,
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: AppColors.success.withOpacity(0.8),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.zoom_in,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-
             // Question Content (Text or Image)
             if (question.questionType == 'Image')
               GestureDetector(
@@ -3106,7 +2966,17 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
       }
 
       if (gradedAnswers.isEmpty) {
-        throw Exception('لا توجد إجابات مقالية مكتوبة من قِبل الطالب لتصحيحها');
+        // No essay answers to grade - just refresh and show success
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('تم حفظ التصحيح بنجاح'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+          await _fetchExam();
+        }
+        return;
       }
 
       final request = GradeExamRequest(

@@ -1,3 +1,61 @@
+class ParentChildCourse {
+  final int courseId;
+  final String courseTitle;
+  final String teacherName;
+  final String status;
+  final DateTime? enrolledAt;
+
+  ParentChildCourse({
+    required this.courseId,
+    required this.courseTitle,
+    required this.teacherName,
+    required this.status,
+    this.enrolledAt,
+  });
+
+  factory ParentChildCourse.fromJson(Map<String, dynamic> json) {
+    return ParentChildCourse(
+      courseId: json['courseId'] ?? 0,
+      courseTitle: json['courseTitle'] ?? '',
+      teacherName: json['teacherName'] ?? '',
+      status: json['status'] ?? '',
+      enrolledAt: json['enrolledAt'] != null
+          ? DateTime.tryParse(json['enrolledAt'])
+          : null,
+    );
+  }
+}
+
+class ParentChild {
+  final int studentId;
+  final String studentFullName;
+  final String studentEmail;
+  final String studentPhoneNumber;
+  final List<ParentChildCourse> courses;
+
+  ParentChild({
+    required this.studentId,
+    required this.studentFullName,
+    required this.studentEmail,
+    required this.studentPhoneNumber,
+    this.courses = const [],
+  });
+
+  factory ParentChild.fromJson(Map<String, dynamic> json) {
+    return ParentChild(
+      studentId: json['studentId'] ?? 0,
+      studentFullName: json['studentFullName'] ?? '',
+      studentEmail: json['studentEmail'] ?? '',
+      studentPhoneNumber: json['studentPhoneNumber'] ?? '',
+      courses: json['courses'] != null
+          ? (json['courses'] as List)
+              .map((e) => ParentChildCourse.fromJson(e as Map<String, dynamic>))
+              .toList()
+          : [],
+    );
+  }
+}
+
 class ParentAdminModel {
   final int parentId;
   final String userId;
@@ -7,6 +65,7 @@ class ParentAdminModel {
   final String fullName;
   final String parentPhoneNumber;
   final int childrenCount;
+  final List<ParentChild> children;
 
   ParentAdminModel({
     required this.parentId,
@@ -17,6 +76,7 @@ class ParentAdminModel {
     required this.fullName,
     required this.parentPhoneNumber,
     required this.childrenCount,
+    this.children = const [],
   });
 
   factory ParentAdminModel.fromJson(Map<String, dynamic> json) {
@@ -29,19 +89,11 @@ class ParentAdminModel {
       fullName: json['fullName'] ?? '',
       parentPhoneNumber: json['parentPhoneNumber'] ?? '',
       childrenCount: json['childrenCount'] ?? 0,
+      children: json['children'] != null
+          ? (json['children'] as List)
+              .map((e) => ParentChild.fromJson(e as Map<String, dynamic>))
+              .toList()
+          : [],
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'parentId': parentId,
-      'userId': userId,
-      'email': email,
-      'firstName': firstName,
-      'lastName': lastName,
-      'fullName': fullName,
-      'parentPhoneNumber': parentPhoneNumber,
-      'childrenCount': childrenCount,
-    };
   }
 }

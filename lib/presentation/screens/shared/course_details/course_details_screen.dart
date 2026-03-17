@@ -23,6 +23,7 @@ import '../../../../data/services/token_service.dart';
 import '../../../widgets/dialogs/add_deadline_exception_dialog.dart';
 import '../../../../data/services/settings_service.dart';
 import 'widgets/student_score_card.dart';
+import 'lecture_details_screen.dart';
 
 class CourseDetailsScreen extends StatefulWidget {
   final Course course;
@@ -638,7 +639,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWideScreen = constraints.maxWidth > 900;
-        final horizontalPadding = isWideScreen ? 64.0 : 20.0;
+        final horizontalPadding = isWideScreen ? 48.0 : 16.0;
 
         return CustomScrollView(
           physics: const BouncingScrollPhysics(),
@@ -651,53 +652,66 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                   child: StudentScoreCard(studentScore: _studentScore!),
                 ),
               ),
+            // Section header
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                  horizontalPadding, 12, horizontalPadding, 0),
+              sliver: SliverToBoxAdapter(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).primaryColor,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'المحاضرات',
+                      style: GoogleFonts.outfit(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color:
+                            Theme.of(context).primaryColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${_lectures.length}',
+                        style: GoogleFonts.outfit(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             SliverPadding(
               padding: EdgeInsets.fromLTRB(
                 horizontalPadding,
-                10,
+                14,
                 horizontalPadding,
                 80,
               ),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    if (isWideScreen) {
-                      // Wide screen: 2 items per row
-                      final int itemIndex = index * 2;
-                      if (itemIndex >= _lectures.length) return null;
-
-                      final lecture1 = _lectures[itemIndex];
-                      final lecture2 = (itemIndex + 1 < _lectures.length)
-                          ? _lectures[itemIndex + 1]
-                          : null;
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 24),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _buildLectureCard(lecture1, itemIndex),
-                            ),
-                            const SizedBox(width: 24),
-                            Expanded(
-                              child: lecture2 != null
-                                  ? _buildLectureCard(lecture2, itemIndex + 1)
-                                  : const SizedBox(),
-                            ),
-                          ],
-                        ),
-                      );
-                    } else {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: _buildLectureCard(_lectures[index], index),
-                      );
-                    }
-                  },
-                  childCount: isWideScreen
-                      ? (_lectures.length / 2).ceil()
-                      : _lectures.length,
+                  (context, index) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildLectureCard(_lectures[index], index),
+                  ),
+                  childCount: _lectures.length,
                 ),
               ),
             ),
@@ -708,402 +722,239 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
   }
 
   Widget _buildLectureCard(Lecture lecture, int index) {
-    return FadeInUp(
-      duration: const Duration(milliseconds: 500),
-      delay: Duration(milliseconds: 100 * (index % 5)), // Cap delay for grid
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).cardColor,
-              Theme.of(context).colorScheme.surface.withOpacity(0.5),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: Theme.of(context).dividerColor.withOpacity(0.5),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Stack(
-            children: [
-              // Watermark Number
-              Positioned(
-                right: -15,
-                bottom: -30,
-                child: Text(
-                  '${index + 1}',
-                  style: GoogleFonts.outfit(
-                    fontSize: 100,
-                    fontWeight: FontWeight.w900,
-                    color: Theme.of(context).primaryColor.withOpacity(0.03),
-                  ),
-                ),
-              ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = Theme.of(context).primaryColor;
 
-              Theme(
-                data: Theme.of(context).copyWith(
-                  dividerColor: Colors.transparent,
-                  splashColor: Colors.transparent,
-                  highlightColor: Colors.transparent,
-                ),
-                child: ExpansionTile(
-                  initiallyExpanded: widget.initialLectureId == lecture.id,
-                  tilePadding: const EdgeInsets.symmetric(
-                    horizontal: 16, // Reduced from 24
-                    vertical: 8, // Reduced from 12
-                  ),
-                  childrenPadding: const EdgeInsets.only(
-                    bottom: 12,
-                  ), // Reduced from 20
-                  leading: Container(
-                    padding: const EdgeInsets.all(8), // Reduced from 12
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Theme.of(context).primaryColor.withOpacity(0.2),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Text(
-                      '${index + 1}',
-                      style: GoogleFonts.outfit(
-                        color: Theme.of(context).primaryColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14, // Reduced from 16
-                      ),
-                    ),
-                  ),
-                  title: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    lecture.title,
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 14, // Reduced from 16
-                                      fontWeight: FontWeight.w600,
-                                      color: Theme.of(
-                                        context,
-                                      ).textTheme.bodyLarge?.color,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${lecture.materials.length} مواد تعليمية',
-                              style: GoogleFonts.inter(
-                                fontSize: 11, // Reduced from 12
-                                color: Theme.of(
-                                  context,
-                                ).textTheme.bodySmall?.color,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (widget.isTeacher && !_isAssistant)
-                        PopupMenuButton<String>(
-                          icon: Icon(
-                            Icons.more_vert_rounded,
-                            color: Theme.of(context).iconTheme.color,
-                            size: 20,
-                          ),
-                          onSelected: (value) {
-                            if (value == 'edit') {
-                              _showEditLectureDialog(lecture);
-                            } else if (value == 'delete') {
-                              _deleteLecture(lecture.id);
-                            } else if (value == 'show') {
-                              _toggleLectureVisibility(
-                                lecture,
-                                targetVisibility: true,
-                              );
-                            } else if (value == 'hide') {
-                              _toggleLectureVisibility(
-                                lecture,
-                                targetVisibility: false,
-                              );
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            PopupMenuItem(
-                              value: 'show',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.visibility_rounded,
-                                    size: 18,
-                                    color: lecture.isVisible
-                                        ? AppColors.primary
-                                        : AppColors.textSecondary,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'إظهار',
-                                    style: GoogleFonts.inter(
-                                      color: lecture.isVisible
-                                          ? AppColors.primary
-                                          : AppColors.textPrimary,
-                                      fontWeight: lecture.isVisible
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'hide',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.visibility_off_rounded,
-                                    size: 18,
-                                    color: !lecture.isVisible
-                                        ? AppColors.primary
-                                        : AppColors.textSecondary,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'إخفاء',
-                                    style: GoogleFonts.inter(
-                                      color: !lecture.isVisible
-                                          ? AppColors.primary
-                                          : AppColors.textPrimary,
-                                      fontWeight: !lecture.isVisible
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuDivider(),
-                            PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.edit_rounded,
-                                    size: 18,
-                                    color: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge?.color,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'تعديل',
-                                    style: GoogleFonts.inter(
-                                      color: Theme.of(
-                                        context,
-                                      ).textTheme.bodyLarge?.color,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.delete_rounded,
-                                    size: 18,
-                                    color: AppColors.error,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'حذف',
-                                    style: GoogleFonts.inter(
-                                      color: AppColors.error,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                  subtitle: null,
-                  iconColor: AppColors.primary,
-                  collapsedIconColor: AppColors.textSecondary,
-                  children: [
-                    if (lecture.materials.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 8,
-                        ),
-                        child: Center(
-                          child: Text(
-                            "لم يتم إضافة مواد بعد.",
-                            style: GoogleFonts.inter(
-                              color: Theme.of(
-                                context,
-                              ).textTheme.bodySmall?.color,
-                              fontSize: 14,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ...lecture.materials.map((material) {
-                      return _buildMaterialItem(material);
-                    }),
-                    if (_lectureExams[lecture.id] != null &&
-                        _lectureExams[lecture.id]!.isNotEmpty)
-                      ..._lectureExams[lecture.id]!.map(
-                        (exam) => _buildExamItem(exam),
-                      ),
-                    if (widget.isTeacher) ...[
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          top: 16,
-                          left: 24,
-                          right: 24,
-                        ),
-                        child: InkWell(
-                          onTap: () => _showAddMaterialDialog(lecture, index),
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
-                              border: Border.all(
-                                color: AppColors.primary.withOpacity(0.3),
-                                style: BorderStyle.solid,
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.add_circle_outline_rounded,
-                                  size: 20,
-                                  color: AppColors.primary,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  "إضافة مادة جديدة",
-                                  style: GoogleFonts.inter(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (lecture.materials.length > 1)
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            top: 12,
-                            left: 24,
-                            right: 24,
-                          ),
-                          child: InkWell(
-                            onTap: () => _showReorderMaterialsSheet(lecture),
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.withOpacity(0.1),
-                                border: Border.all(
-                                  color: Colors.blue.withOpacity(0.3),
-                                  style: BorderStyle.solid,
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.reorder_rounded,
-                                    size: 20,
-                                    color: Colors.blue,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    "ترتيب المواد",
-                                    style: GoogleFonts.inter(
-                                      color: Colors.blue,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      // Always show 'Create Exam' button for teachers to allow multiple exams/assignments
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          top: 12,
-                          left: 24,
-                          right: 24,
-                        ),
-                        child: InkWell(
-                          onTap: () => _showCreateExamDialog(lecture),
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withOpacity(0.1),
-                              border: Border.all(
-                                color: Colors.orange.withOpacity(0.3),
-                                style: BorderStyle.solid,
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.quiz_rounded,
-                                  size: 20,
-                                  color: Colors.orange,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  "إنشاء اختبار جديد",
-                                  style: GoogleFonts.inter(
-                                    color: Colors.orange,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+    return FadeInUp(
+      duration: const Duration(milliseconds: 400),
+      delay: Duration(milliseconds: 50 * (index % 8)),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            final exams = _lectureExams[lecture.id] ?? [];
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => LectureDetailsScreen(
+                  lecture: lecture,
+                  course: widget.course,
+                  isTeacher: widget.isTeacher || _isAssistant,
+                  hasApprovedSubscription: _hasApprovedSubscription,
+                  isAssistant: _isAssistant,
+                  exams: exams,
+                  lectureIndex: index,
+                  onAddMaterial: widget.isTeacher
+                      ? () => _showAddMaterialDialog(lecture, index)
+                      : null,
+                  onReorderMaterials: widget.isTeacher
+                      ? () async => _showReorderMaterialsSheet(lecture)
+                      : null,
+                  onCreateExam: widget.isTeacher
+                      ? () => _showCreateExamDialog(lecture)
+                      : null,
+                  onEditLecture: (widget.isTeacher && !_isAssistant)
+                      ? () => _showEditLectureDialog(lecture)
+                      : null,
+                  onDeleteLecture: (widget.isTeacher && !_isAssistant)
+                      ? () => _deleteLecture(lecture.id)
+                      : null,
+                  onToggleVisibility: (widget.isTeacher && !_isAssistant)
+                      ? (visible) => _toggleLectureVisibility(
+                            lecture,
+                            targetVisibility: visible,
+                          )
+                      : null,
                 ),
               ),
-            ],
+            ).then((_) => _refreshCourse());
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withOpacity(0.08)
+                    : Colors.grey.shade200,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isDark
+                      ? Colors.black.withOpacity(0.2)
+                      : Colors.black.withOpacity(0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                    child: Row(
+                      children: [
+                        // Number badge
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                accent,
+                                accent.withOpacity(0.7),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: accent.withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${index + 1}',
+                              style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 17,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        // Title + stats
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                lecture.title,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge
+                                      ?.color,
+                                  height: 1.3,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 5,
+                                    height: 5,
+                                    decoration: BoxDecoration(
+                                      color: accent,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${lecture.materials.length} مادة',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.color
+                                          ?.withOpacity(0.7),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    width: 5,
+                                    height: 5,
+                                    decoration: BoxDecoration(
+                                      color: accent.withOpacity(0.6),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${_lectureExams[lecture.id]?.length ?? 0} اختبار',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.color
+                                          ?.withOpacity(0.7),
+                                    ),
+                                  ),
+                                  if (!lecture.isVisible) ...[
+                                    const SizedBox(width: 10),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.warning
+                                            .withOpacity(0.12),
+                                        borderRadius:
+                                            BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        'مخفية',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.warning,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Arrow
+                        Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: accent.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 13,
+                            color: accent.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Bottom accent line
+                  Container(
+                    height: 3,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          accent,
+                          accent.withOpacity(0.15),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -2197,9 +2048,9 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
     final urlController = TextEditingController();
     final titleController = TextEditingController();
     final allTypes = ['Video', 'Pdf', 'Image', 'Homework'];
-    final materialTypes = _isAssistant ? ['Pdf', 'Image'] : allTypes;
+    final materialTypes = _isAssistant ? ['Video', 'Pdf', 'Image'] : allTypes;
 
-    String selectedType = _isAssistant ? 'Pdf' : 'Video';
+    String selectedType = 'Video';
     bool isFree = false;
     PlatformFile? selectedFile;
 

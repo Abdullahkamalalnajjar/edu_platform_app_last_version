@@ -60,8 +60,9 @@ class AssistantService {
   ) async {
     try {
       final token = await _tokenService.getToken();
+      final url = '$baseUrl/api/v1/assistants/by-teacher/$teacherId';
       final response = await http.get(
-        Uri.parse('$baseUrl/ByTeacher/$teacherId'),
+        Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
@@ -69,6 +70,7 @@ class AssistantService {
       );
 
       print('--- Get Teacher Assistants ---');
+      print('URL: $url');
       print('Status Code: ${response.statusCode}');
       print('Body: ${response.body}');
 
@@ -77,9 +79,8 @@ class AssistantService {
 
         if (jsonResponse['succeeded'] == true) {
           final List<dynamic> data = jsonResponse['data'] ?? [];
-          final assistants = data
-              .map((item) => Assistant.fromJson(item))
-              .toList();
+          final assistants =
+              data.map((item) => Assistant.fromJson(item)).toList();
 
           return ApiResponse<List<Assistant>>(
             statusCode: response.statusCode,
@@ -280,6 +281,127 @@ class AssistantService {
       }
     } catch (e) {
       print('Error changing password: $e');
+      return ApiResponse<void>(
+        statusCode: 0,
+        succeeded: false,
+        message: 'خطأ: $e',
+      );
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getAssistantById(
+      int assistantId) async {
+    try {
+      final token = await _tokenService.getToken();
+      final url = '$baseUrl/api/v1/assistants/$assistantId';
+
+      print('--- Get Assistant By ID ---');
+      print('URL: $url');
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'accept': '*/*',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      print('Status Code: ${response.statusCode}');
+      print('Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        if (jsonResponse['succeeded'] == true && jsonResponse['data'] != null) {
+          return ApiResponse<Map<String, dynamic>>(
+            statusCode: response.statusCode,
+            succeeded: true,
+            message: jsonResponse['message'] ?? 'Successfully',
+            data: jsonResponse['data'],
+          );
+        }
+      }
+
+      final jsonResponse = json.decode(response.body);
+      return ApiResponse<Map<String, dynamic>>(
+        statusCode: response.statusCode,
+        succeeded: false,
+        message: jsonResponse['message'] ?? 'فشل جلب بيانات المساعد',
+      );
+    } catch (e) {
+      print('Error fetching assistant by id: $e');
+      return ApiResponse<Map<String, dynamic>>(
+        statusCode: 0,
+        succeeded: false,
+        message: 'خطأ: $e',
+      );
+    }
+  }
+
+  Future<ApiResponse<void>> updateProfile({
+    required int assistantId,
+    required String firstName,
+    required String lastName,
+    required String phoneNumber,
+    String? photoPath,
+  }) async {
+    try {
+      final token = await _tokenService.getToken();
+      final url = '$baseUrl/api/v1/assistants/profile';
+
+      print('--- Update Assistant Profile ---');
+      print('URL: $url');
+      print('AssistantId: $assistantId');
+
+      final request = http.MultipartRequest('PUT', Uri.parse(url));
+      request.headers['accept'] = '*/*';
+      if (token != null) request.headers['Authorization'] = 'Bearer $token';
+
+      request.fields['AssistantId'] = assistantId.toString();
+      request.fields['FirstName'] = firstName;
+      request.fields['LastName'] = lastName;
+      request.fields['PhoneNumber'] = phoneNumber;
+
+      if (photoPath != null && photoPath.isNotEmpty) {
+        request.files.add(
+          await http.MultipartFile.fromPath('PhotoFile', photoPath),
+        );
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      print('Status Code: ${response.statusCode}');
+      print('Body: ${response.body}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        String message = 'تم تحديث الملف الشخصي بنجاح';
+        if (response.body.isNotEmpty) {
+          try {
+            final jsonResponse = json.decode(response.body);
+            message = jsonResponse['message'] ?? message;
+          } catch (_) {}
+        }
+        return ApiResponse<void>(
+          statusCode: response.statusCode,
+          succeeded: true,
+          message: message,
+        );
+      } else {
+        String message = 'فشل تحديث الملف الشخصي';
+        if (response.body.isNotEmpty) {
+          try {
+            final jsonResponse = json.decode(response.body);
+            message = jsonResponse['message'] ?? message;
+          } catch (_) {}
+        }
+        return ApiResponse<void>(
+          statusCode: response.statusCode,
+          succeeded: false,
+          message: message,
+        );
+      }
+    } catch (e) {
+      print('Error updating assistant profile: $e');
       return ApiResponse<void>(
         statusCode: 0,
         succeeded: false,

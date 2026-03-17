@@ -414,7 +414,7 @@ class _SignupScreenState extends State<SignupScreen>
                       ),
                     ),
                   ),
-                  expandedHeight: 200,
+                  expandedHeight: 220,
                   flexibleSpace: FlexibleSpaceBar(background: _buildHeader()),
                 ),
 
@@ -429,25 +429,42 @@ class _SignupScreenState extends State<SignupScreen>
   }
 
   Widget _buildAnimatedBackground(Size size) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AnimatedBuilder(
       animation: _backgroundController,
       builder: (context, child) {
+        final t = _backgroundController.value;
         return Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).scaffoldBackgroundColor,
-                Theme.of(context).cardColor,
-                Theme.of(context).scaffoldBackgroundColor,
-              ],
-              stops: [
-                0.0,
-                0.5 + 0.1 * math.sin(_backgroundController.value * 2 * math.pi),
-                1.0,
-              ],
-            ),
+            gradient: isDark
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: const [
+                      Color(0xFF0A0000),
+                      Color(0xFF1A0000),
+                      Color(0xFF0A0000),
+                    ],
+                    stops: [
+                      0.0,
+                      0.5 + 0.15 * math.sin(t * 2 * math.pi),
+                      1.0
+                    ],
+                  )
+                : LinearGradient(
+                    begin: Alignment.topRight,
+                    end: Alignment.bottomLeft,
+                    colors: const [
+                      Colors.white,
+                      Color(0xFFFFF5F5),
+                      Colors.white,
+                    ],
+                    stops: [
+                      0.0,
+                      0.5 + 0.15 * math.sin(t * 2 * math.pi),
+                      1.0
+                    ],
+                  ),
           ),
         );
       },
@@ -455,100 +472,135 @@ class _SignupScreenState extends State<SignupScreen>
   }
 
   Widget _buildDecorativeOrbs(Size size) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Stack(
       children: [
-        // Top Right Red Orb
+        // Top Left Red Orb
         Positioned(
-          top: -size.height * 0.1,
-          right: -size.width * 0.2,
+          top: -120,
+          left: -80,
           child: Container(
-            width: size.width * 0.6,
-            height: size.width * 0.6,
+            width: 340,
+            height: 340,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  Theme.of(context).primaryColor.withOpacity(0.15),
-                  Theme.of(context).primaryColor.withOpacity(0),
+                  AppColors.primary.withOpacity(isDark ? 0.30 : 0.15),
+                  Colors.transparent,
                 ],
               ),
             ),
           ),
         ),
 
-        // Bottom Left Dark Red Orb
+        // Bottom Right Red Orb
         Positioned(
-          bottom: size.height * 0.2,
-          left: -size.width * 0.3,
+          bottom: -80,
+          right: -80,
           child: Container(
-            width: size.width * 0.7,
-            height: size.width * 0.7,
+            width: 360,
+            height: 360,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  Theme.of(context).primaryColor.withOpacity(0.1),
-                  Theme.of(context).primaryColor.withOpacity(0),
+                  AppColors.primary.withOpacity(isDark ? 0.20 : 0.12),
+                  Colors.transparent,
                 ],
               ),
             ),
           ),
         ),
+
+        // Extra dark-mode mid orb
+        if (isDark)
+          Positioned(
+            top: 300,
+            right: -60,
+            child: Container(
+              width: 220,
+              height: 220,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFB71C1C).withOpacity(0.18),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
 
   Widget _buildHeader() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 60, 24, 20),
+        padding: const EdgeInsets.fromLTRB(24, 40, 24, 12),
         child: FadeInDown(
           duration: const Duration(milliseconds: 600),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Logo
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Theme.of(context).cardColor.withOpacity(0.5),
-                  border: Border.all(color: Theme.of(context).dividerColor),
+                  color: isDark
+                      ? Colors.white.withOpacity(0.06)
+                      : Colors.white.withOpacity(0.85),
+                  border: Border.all(
+                    color: AppColors.primary.withOpacity(0.2),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.15),
+                      blurRadius: 16,
+                      spreadRadius: 1,
+                    ),
+                  ],
                 ),
                 child: Image.asset(
                   'assets/images/logo_icon.png',
-                  width: 48,
-                  height: 48,
+                  width: 40,
+                  height: 40,
                   fit: BoxFit.contain,
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'إنشاء حساب',
-                style: GoogleFonts.outfit(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w700,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                  letterSpacing: -0.5,
+              const SizedBox(height: 14),
+              ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [AppColors.primary, Color(0xFFE53935)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ).createShader(bounds),
+                child: Text(
+                  'إنشاء حساب',
+                  style: GoogleFonts.tajawal(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
                 ),
               ),
               const SizedBox(height: 4),
               Text(
-                'منصة بوصلة - Bosla',
-                style: GoogleFonts.outfit(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).primaryColor,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
                 'أنشئ حساباً لبدء رحلتك التعليمية',
                 style: GoogleFonts.inter(
-                  fontSize: 15,
-                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                  fontSize: 14,
+                  color: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.color
+                      ?.withOpacity(0.6),
                 ),
               ),
             ],
@@ -836,7 +888,7 @@ class _SignupScreenState extends State<SignupScreen>
                       child: Text(
                         'تسجيل الدخول',
                         style: GoogleFonts.inter(
-                          color: Theme.of(context).primaryColor,
+                          color: AppColors.primary,
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
                         ),
@@ -845,6 +897,7 @@ class _SignupScreenState extends State<SignupScreen>
                   ],
                 ),
               ),
+              const SizedBox(height: 32),
             ],
           ),
         ),
@@ -858,7 +911,7 @@ class _SignupScreenState extends State<SignupScreen>
       children: [
         Row(
           children: [
-            Icon(icon, color: Theme.of(context).primaryColor, size: 20),
+            Icon(icon, color: AppColors.primary, size: 20),
             const SizedBox(width: 8),
             Text(
               title,
@@ -875,11 +928,11 @@ class _SignupScreenState extends State<SignupScreen>
           width: 40,
           height: 3,
           decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor,
+            color: AppColors.primary,
             borderRadius: BorderRadius.circular(2),
             boxShadow: [
               BoxShadow(
-                color: Theme.of(context).primaryColor.withOpacity(0.3),
+                color: AppColors.primary.withOpacity(0.3),
                 blurRadius: 6,
               ),
             ],
@@ -935,7 +988,7 @@ class _SignupScreenState extends State<SignupScreen>
                 children: [
                   Icon(
                     _getRoleIcon(role.name),
-                    color: Theme.of(context).primaryColor,
+                    color: AppColors.primary,
                     size: 20,
                   ),
                   const SizedBox(width: 12),
@@ -1171,7 +1224,7 @@ class _SignupScreenState extends State<SignupScreen>
                         ),
                       ),
                       value: isSelected,
-                      activeColor: Theme.of(context).primaryColor,
+                      activeColor: AppColors.primary,
                       checkColor: Colors.white,
                       onChanged: (bool? value) {
                         setStateDialog(() {
@@ -1193,7 +1246,7 @@ class _SignupScreenState extends State<SignupScreen>
                   onPressed: () => Navigator.pop(context),
                   child: Text(
                     'تم',
-                    style: TextStyle(color: Theme.of(context).primaryColor),
+                    style: TextStyle(color: AppColors.primary),
                   ),
                 ),
               ],

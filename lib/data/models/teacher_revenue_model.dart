@@ -34,6 +34,7 @@ class CourseRevenueDetail {
   final int courseId;
   final String courseTitle;
   final double? coursePrice;
+  final double? discountedPrice;
   final int approvedSubscriptions;
   final double courseRevenue;
   final List<StudentRevenueDetail> students;
@@ -42,6 +43,7 @@ class CourseRevenueDetail {
     required this.courseId,
     required this.courseTitle,
     this.coursePrice,
+    this.discountedPrice,
     required this.approvedSubscriptions,
     required this.courseRevenue,
     required this.students,
@@ -53,6 +55,9 @@ class CourseRevenueDetail {
       courseTitle: json['courseTitle'] ?? '',
       coursePrice: json['coursePrice'] != null
           ? (json['coursePrice'] as num).toDouble()
+          : null,
+      discountedPrice: json['discountedPrice'] != null
+          ? (json['discountedPrice'] as num).toDouble()
           : null,
       approvedSubscriptions: json['approvedSubscriptions'] ?? 0,
       courseRevenue: json['courseRevenue'] != null

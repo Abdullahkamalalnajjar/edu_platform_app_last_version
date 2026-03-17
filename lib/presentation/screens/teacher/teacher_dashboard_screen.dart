@@ -4,7 +4,6 @@ import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:edu_platform_app/core/constants/app_colors.dart';
 import 'package:edu_platform_app/data/services/token_service.dart';
-import 'package:convex_bottom_bar/convex_bottom_bar.dart';
 import '../auth/login_screen.dart';
 import 'package:edu_platform_app/data/models/course_models.dart';
 import 'package:edu_platform_app/data/services/teacher_service.dart';
@@ -27,11 +26,13 @@ import 'package:edu_platform_app/data/services/theme_service.dart';
 
 class TeacherDashboardScreen extends StatefulWidget {
   final int? teacherId; // Optional teacher ID for admin view
+  final String? teacherUserId; // Teacher's userId (GUID) for admin view
   final bool isAdminView; // Flag to indicate if admin is viewing
 
   const TeacherDashboardScreen({
     super.key,
     this.teacherId,
+    this.teacherUserId,
     this.isAdminView = false,
   });
 
@@ -230,6 +231,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
           _TeacherSettingsPage(
             onLogout: _handleLogout,
             teacherId: widget.teacherId,
+            teacherUserId: widget.teacherUserId, // forward GUID for admin view
             onDeleteAccount: _handleDeleteAccount,
           ),
         ],
@@ -240,29 +242,85 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
 
   Widget _buildBottomNav() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1A1A1A) : AppColors.primary;
 
-    return ConvexAppBar(
-      style: TabStyle.react,
-      items: const [
-        TabItem(icon: Icons.play_lesson_rounded, title: 'دوراتي'),
-        TabItem(icon: Icons.person_rounded, title: 'الملف الشخصي'),
-        TabItem(icon: Icons.settings_rounded, title: 'الإعدادات'),
-      ],
-      initialActiveIndex: _currentIndex,
-      onTap: (index) {
-        setState(() {
-          _currentIndex = index;
-        });
-      },
-      backgroundColor: isDark ? Theme.of(context).cardColor : AppColors.primary,
-      color: isDark
-          ? Theme.of(context).iconTheme.color?.withOpacity(0.6)
-          : Colors.white.withOpacity(0.7),
-      activeColor: isDark ? AppColors.primary : Colors.white,
-      height: 50,
-      elevation: 8,
-      curveSize: 90,
-      top: -20,
+    final items = <Map<String, dynamic>>[
+      {'icon': Icons.play_lesson_rounded, 'label': 'دوراتي'},
+      {'icon': Icons.person_rounded, 'label': 'الملف'},
+      {'icon': Icons.settings_rounded, 'label': 'الإعدادات'},
+    ];
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(40),
+        boxShadow: [
+          BoxShadow(
+            color: bgColor.withOpacity(0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: List.generate(items.length, (index) {
+          final isSelected = _currentIndex == index;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _currentIndex = index),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSelected ? 12 : 8,
+                  vertical: isSelected ? 8 : 8,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? (isDark
+                          ? AppColors.primary.withOpacity(0.2)
+                          : Colors.white)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      items[index]['icon'] as IconData,
+                      size: 22,
+                      color: isSelected
+                          ? (isDark ? AppColors.primary : AppColors.primary)
+                          : (isDark
+                              ? Colors.white.withOpacity(0.4)
+                              : Colors.white.withOpacity(0.6)),
+                    ),
+                    if (isSelected) ...[
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          items[index]['label'] as String,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color:
+                                isDark ? AppColors.primary : AppColors.primary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
     );
   }
 }
@@ -2101,12 +2159,30 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
   }
 
   void _showReorderCoursesSheet() {
+    // Filter courses by selected stage (same logic as build method)
+    final coursesToReorder = _courses.where((c) {
+      if (_selectedStage == null) return true;
+      final stageName = c.educationStageName?.isNotEmpty == true
+          ? c.educationStageName!
+          : 'أخرى';
+      return stageName == _selectedStage;
+    }).toList();
+
+    if (coursesToReorder.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('لا توجد دورات كافية للترتيب في هذه المرحلة'),
+        ),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _ReorderCoursesSheet(
-        courses: _courses,
+        courses: coursesToReorder,
         teacherService: _teacherService,
         onReordered: _fetchCourses,
       ),
@@ -2657,10 +2733,12 @@ class _TeacherSettingsPage extends StatefulWidget {
   final VoidCallback onLogout;
   final VoidCallback? onDeleteAccount;
   final int? teacherId; // Optional teacherId for admin view
+  final String? teacherUserId; // Teacher's GUID for admin view (edit profile)
 
   const _TeacherSettingsPage({
     required this.onLogout,
     this.teacherId,
+    this.teacherUserId,
     this.onDeleteAccount,
   });
 
@@ -2671,11 +2749,22 @@ class _TeacherSettingsPage extends StatefulWidget {
 class _TeacherSettingsPageState extends State<_TeacherSettingsPage> {
   final _tokenService = TokenService();
   bool _deleteAccountEnabled = false;
+  bool _isAssistant = false;
 
   @override
   void initState() {
     super.initState();
     _checkDeleteAccountEnabled();
+    _checkUserRole();
+  }
+
+  Future<void> _checkUserRole() async {
+    final role = await _tokenService.getRole();
+    if (mounted) {
+      setState(() {
+        _isAssistant = role == 'Assistant';
+      });
+    }
   }
 
   Future<void> _checkDeleteAccountEnabled() async {
@@ -2711,7 +2800,11 @@ class _TeacherSettingsPageState extends State<_TeacherSettingsPage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const EditTeacherProfileScreen(),
+          builder: (context) => EditTeacherProfileScreen(
+            // Prefer the teacher's GUID passed from admin view;
+            // fall back to the logged-in user's own GUID for self-edit.
+            targetUserGuid: widget.teacherUserId ?? userId,
+          ),
         ),
       );
     }
@@ -2778,20 +2871,21 @@ class _TeacherSettingsPageState extends State<_TeacherSettingsPage> {
                     );
                   },
                 ),
-                _buildSettingsTile(
-                  icon: Icons.people_outline_rounded,
-                  title: 'إدارة المساعدين',
-                  subtitle: 'إضافة وإدارة المساعدين',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            ManageAssistantsScreen(teacherId: widget.teacherId),
-                      ),
-                    );
-                  },
-                ),
+                if (!_isAssistant)
+                  _buildSettingsTile(
+                    icon: Icons.people_outline_rounded,
+                    title: 'إدارة المساعدين',
+                    subtitle: 'إضافة وإدارة المساعدين',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ManageAssistantsScreen(teacherId: widget.teacherId),
+                        ),
+                      );
+                    },
+                  ),
               ],
             ),
             const SizedBox(height: 24),

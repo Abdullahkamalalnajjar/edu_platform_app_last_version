@@ -86,7 +86,9 @@ class StudentService {
     required String parentPhoneNumber,
     required String governorate,
     required String city,
-    String? profileImagePath, // Optional image path
+    String? firstName,
+    String? lastName,
+    String? profileImagePath,
   }) async {
     try {
       final token = await _tokenService.getToken();
@@ -112,6 +114,13 @@ class StudentService {
       request.fields['ParentPhoneNumber'] = parentPhoneNumber;
       request.fields['Governorate'] = governorate;
       request.fields['City'] = city;
+
+      if (firstName != null && firstName.isNotEmpty) {
+        request.fields['FirstName'] = firstName;
+      }
+      if (lastName != null && lastName.isNotEmpty) {
+        request.fields['LastName'] = lastName;
+      }
 
       // Add image file if provided
       if (profileImagePath != null && profileImagePath.isNotEmpty) {

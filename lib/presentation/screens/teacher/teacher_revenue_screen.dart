@@ -146,7 +146,6 @@ class _TeacherRevenueScreenState extends State<TeacherRevenueScreen> {
     final groupedMap = <String, CourseRevenueDetail>{};
 
     for (var course in _revenueData!.courses) {
-      // Use courseTitle as key to merge duplicates visually
       final key = course.courseTitle;
 
       if (groupedMap.containsKey(key)) {
@@ -155,6 +154,7 @@ class _TeacherRevenueScreenState extends State<TeacherRevenueScreen> {
           courseId: existing.courseId,
           courseTitle: existing.courseTitle,
           coursePrice: existing.coursePrice,
+          discountedPrice: existing.discountedPrice ?? course.discountedPrice,
           approvedSubscriptions:
               existing.approvedSubscriptions + course.approvedSubscriptions,
           courseRevenue: existing.courseRevenue + course.courseRevenue,
@@ -167,6 +167,17 @@ class _TeacherRevenueScreenState extends State<TeacherRevenueScreen> {
     return groupedMap.values.toList();
   }
 
+  /// Calculate revenue for a course based on discountedPrice
+  double _getCourseRevenue(CourseRevenueDetail course) {
+    final price = course.discountedPrice ?? course.coursePrice ?? 0;
+    return price * course.approvedSubscriptions;
+  }
+
+  /// Calculate total revenue based on discountedPrice
+  double get _totalDiscountedRevenue {
+    return _groupedCourses.fold(0.0, (sum, course) => sum + _getCourseRevenue(course));
+  }
+
   Widget _buildSummaryCards() {
     return Row(
       children: [
@@ -175,7 +186,7 @@ class _TeacherRevenueScreenState extends State<TeacherRevenueScreen> {
             duration: const Duration(milliseconds: 600),
             child: _buildSummaryCard(
               title: 'إجمالي الأرباح',
-              value: '${_revenueData!.totalRevenue.toStringAsFixed(0)} ج.م',
+              value: '${_totalDiscountedRevenue.toStringAsFixed(0)} ج.م',
               icon: Icons.attach_money_rounded,
               color: AppColors.success,
             ),
@@ -275,7 +286,7 @@ class _TeacherRevenueScreenState extends State<TeacherRevenueScreen> {
               child: Row(
                 children: [
                   _buildInfoChip(
-                    '${course.courseRevenue.toStringAsFixed(0)} ج.م',
+                    '${_getCourseRevenue(course).toStringAsFixed(0)} ج.م',
                     Icons.monetization_on_rounded,
                     AppColors.success,
                   ),

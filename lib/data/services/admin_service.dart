@@ -175,6 +175,12 @@ class AdminService {
         },
       );
 
+      print('--- getAllParents ---');
+      print('URL: ${ApiConstants.adminParents}');
+      print('Status Code: ${response.statusCode}');
+      print('Body: ${response.body}');
+      print('--------------------');
+
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
 

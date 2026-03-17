@@ -566,6 +566,7 @@ class _AllTeachersScreenState extends State<AllTeachersScreen>
           MaterialPageRoute(
             builder: (context) => TeacherDashboardScreen(
               teacherId: teacher.teacherId,
+              teacherUserId: teacher.userId, // Pass teacher's GUID for profile editing
               isAdminView: true, // Flag to indicate admin is viewing
             ),
           ),

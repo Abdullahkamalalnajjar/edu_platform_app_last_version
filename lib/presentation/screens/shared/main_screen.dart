@@ -11,7 +11,7 @@ import 'settings_screen.dart';
 import '../auth/login_screen.dart';
 import '../student/my_courses_page.dart';
 import '../student/select_subject_screen.dart';
-import 'package:convex_bottom_bar/convex_bottom_bar.dart';
+
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -243,35 +243,99 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildBottomNav() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1A1A1A) : AppColors.primary;
 
-    return ConvexAppBar(
-      style: TabStyle.react,
-      items: const [
-        TabItem(icon: Icons.grid_view_rounded, title: 'المواد'),
-        TabItem(icon: Icons.play_lesson_rounded, title: 'دوراتي'),
-        TabItem(icon: Icons.person_rounded, title: 'الملف الشخصي'),
-        TabItem(icon: Icons.settings_rounded, title: 'الإعدادات'),
-      ],
-      initialActiveIndex: _currentIndex,
-      onTap: (index) {
-        if (index == 0) {
-          _homeNavigatorKey.currentState?.popUntil((route) => route.isFirst);
-        }
-        setState(() {
-          _currentIndex = index;
-        });
-      },
-      backgroundColor: isDark ? Theme.of(context).cardColor : AppColors.primary,
-      color: isDark
-          ? Theme.of(context).iconTheme.color?.withOpacity(0.6)
-          : Colors.white.withOpacity(0.7),
-      activeColor: isDark ? AppColors.primary : Colors.white,
-      height: 50,
-      elevation: 8,
-      curveSize: 90,
-      top: -20,
+    final items = [
+      _NavItem(Icons.grid_view_rounded, 'المواد'),
+      _NavItem(Icons.play_lesson_rounded, 'دوراتي'),
+      _NavItem(Icons.person_rounded, 'الملف'),
+      _NavItem(Icons.settings_rounded, 'الإعدادات'),
+    ];
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(40),
+        boxShadow: [
+          BoxShadow(
+            color: bgColor.withOpacity(0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: List.generate(items.length, (index) {
+          final isSelected = _currentIndex == index;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () {
+                if (index == 0) {
+                  _homeNavigatorKey.currentState
+                      ?.popUntil((route) => route.isFirst);
+                }
+                setState(() {
+                  _currentIndex = index;
+                });
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSelected ? 12 : 8,
+                  vertical: isSelected ? 8 : 8,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? (isDark ? AppColors.primary.withOpacity(0.2) : Colors.white)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      items[index].icon,
+                      size: 22,
+                      color: isSelected
+                          ? AppColors.primary
+                          : (isDark
+                              ? Colors.white.withOpacity(0.4)
+                              : Colors.white.withOpacity(0.6)),
+                    ),
+                    if (isSelected) ...[
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          items[index].label,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
     );
   }
+}
+
+class _NavItem {
+  final IconData icon;
+  final String label;
+  const _NavItem(this.icon, this.label);
 }
 
 class _HomeNavigator extends StatefulWidget {

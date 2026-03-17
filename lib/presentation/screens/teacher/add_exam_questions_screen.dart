@@ -41,6 +41,7 @@ class _AddExamQuestionsScreenState extends State<AddExamQuestionsScreen> {
   bool _correctByAssistant = false;
   XFile? _selectedFile;
   XFile? _selectedCorrectAnswerFile;
+  String? _existingQuestionImageUrl;
 
   final List<Map<String, dynamic>> _tempOptions = [];
   final _optionController = TextEditingController();
@@ -62,6 +63,7 @@ class _AddExamQuestionsScreenState extends State<AddExamQuestionsScreen> {
 
     // Always clear file picker for question (new question needs new file)
     _selectedFile = null;
+    _existingQuestionImageUrl = null;
 
     if (!keepSettings) {
       // Clear all settings (used when canceling edit)
@@ -149,10 +151,9 @@ class _AddExamQuestionsScreenState extends State<AddExamQuestionsScreen> {
   void _startEditing(Question question) {
     setState(() {
       _editingQuestionId = question.id;
-      _contentController.text = question.content;
       _scoreController.text = question.score.toString();
       _correctAnswerController.text =
-          question.correctAnswer ?? ''; // Load correct answer text
+          question.correctAnswer ?? '';
       _selectedQuestionType = question.questionType.isEmpty
           ? 'Text'
           : question.questionType;
@@ -160,14 +161,25 @@ class _AddExamQuestionsScreenState extends State<AddExamQuestionsScreen> {
           ? 'TextAnswer'
           : question.answerType;
       _correctByAssistant = question.correctByAssistant;
+
+      // If Image type, store URL as existing image and clear text content
+      if (_selectedQuestionType == 'Image' &&
+          question.content.isNotEmpty &&
+          (question.content.startsWith('http') ||
+              question.content.startsWith('/'))) {
+        _existingQuestionImageUrl = question.content;
+        _contentController.clear();
+      } else {
+        _existingQuestionImageUrl = null;
+        _contentController.text = question.content;
+      }
+
       _tempOptions.clear();
-      // Populate options if available, though mapping back to simplified UI model might be tricky if structure differs
-      // For now, let's assume we can map them back simply
       for (var opt in question.options) {
         _tempOptions.add({
           'content': opt.content,
           'isCorrect': opt.isCorrect,
-          'id': opt.id, // Keep ID for potential update
+          'id': opt.id,
         });
       }
     });
@@ -461,11 +473,112 @@ class _AddExamQuestionsScreenState extends State<AddExamQuestionsScreen> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    _buildTextField(
-                      controller: _contentController,
-                      label: 'محتوى السؤال',
-                      maxLines: 3,
-                    ),
+                    // Show existing image preview when editing an Image question
+                    if (_existingQuestionImageUrl != null) ...[
+                      Text(
+                        'صورة السؤال الحالية',
+                        style: GoogleFonts.inter(
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Stack(
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => Dialog(
+                                  backgroundColor: Colors.transparent,
+                                  insetPadding: EdgeInsets.zero,
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () => Navigator.pop(context),
+                                        child: Container(color: Colors.black87),
+                                      ),
+                                      InteractiveViewer(
+                                        panEnabled: true,
+                                        minScale: 0.5,
+                                        maxScale: 4.0,
+                                        child: Center(
+                                          child: Image.network(
+                                            _existingQuestionImageUrl!,
+                                            fit: BoxFit.contain,
+                                            errorBuilder: (context, error, stackTrace) =>
+                                                const Icon(Icons.broken_image, color: Colors.white, size: 64),
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 40,
+                                        right: 20,
+                                        child: IconButton(
+                                          onPressed: () => Navigator.pop(context),
+                                          icon: Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black54,
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: const Icon(Icons.close, color: Colors.white, size: 24),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(
+                                _existingQuestionImageUrl!,
+                                height: 150,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Container(
+                                  height: 150,
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.error.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(Icons.broken_image, color: AppColors.error, size: 48),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _existingQuestionImageUrl = null;
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.error,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Icon(Icons.close, color: Colors.white, size: 18),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ] else
+                      _buildTextField(
+                        controller: _contentController,
+                        label: 'محتوى السؤال',
+                        maxLines: 3,
+                      ),
                     const SizedBox(height: 16),
                     _buildDropdown(
                       label: 'نوع السؤال',
@@ -814,17 +927,111 @@ class _AddExamQuestionsScreenState extends State<AddExamQuestionsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                q.content,
-                                style: TextStyle(
-                                  color: Theme.of(
-                                    context,
-                                  ).textTheme.bodyLarge?.color,
-                                  fontWeight: FontWeight.w600,
+                              if (q.questionType == 'Image' &&
+                                  q.content.isNotEmpty &&
+                                  (q.content.startsWith('http') ||
+                                      q.content.startsWith('/')))
+                                GestureDetector(
+                                  onTap: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => Dialog(
+                                        backgroundColor: Colors.transparent,
+                                        insetPadding: EdgeInsets.zero,
+                                        child: Stack(
+                                          fit: StackFit.expand,
+                                          children: [
+                                            GestureDetector(
+                                              onTap: () =>
+                                                  Navigator.pop(context),
+                                              child: Container(
+                                                  color: Colors.black87),
+                                            ),
+                                            InteractiveViewer(
+                                              panEnabled: true,
+                                              minScale: 0.5,
+                                              maxScale: 4.0,
+                                              child: Center(
+                                                child: Image.network(
+                                                  q.content,
+                                                  fit: BoxFit.contain,
+                                                  errorBuilder: (context, error,
+                                                          stackTrace) =>
+                                                      const Icon(
+                                                    Icons.broken_image,
+                                                    color: Colors.white,
+                                                    size: 64,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            Positioned(
+                                              top: 40,
+                                              right: 20,
+                                              child: IconButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(context),
+                                                icon: Container(
+                                                  padding:
+                                                      const EdgeInsets.all(8),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.black54,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            20),
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.close,
+                                                    color: Colors.white,
+                                                    size: 24,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      q.content,
+                                      height: 60,
+                                      width: 80,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              Container(
+                                        height: 60,
+                                        width: 80,
+                                        decoration: BoxDecoration(
+                                          color:
+                                              AppColors.error.withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: const Icon(
+                                          Icons.broken_image,
+                                          color: AppColors.error,
+                                          size: 24,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              else
+                                Text(
+                                  q.content,
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge?.color,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
                               Text(
                                 '${_translateQuestionType(q.questionType)} • ${_translateAnswerType(q.answerType)} • الدرجة: ${q.score}',
                                 style: TextStyle(

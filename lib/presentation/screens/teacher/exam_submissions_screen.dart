@@ -37,6 +37,7 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
   String _searchQuery = '';
   NonSubmittedStudentsResponse? _nonSubmittedResponse;
   bool _showingNonSubmittedOnly = false;
+  bool _filterPendingOnly = false;
 
   @override
   void initState() {
@@ -83,6 +84,11 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
       // We might need to handle the display separately or merge them.
     }
 
+    // Apply pending filter
+    if (_filterPendingOnly) {
+      baseList = baseList.where((s) => s.pendingGradingAnswers > 0).toList();
+    }
+
     if (_searchQuery.isEmpty) {
       _filteredSubmissions = baseList;
     } else {
@@ -118,6 +124,22 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  /// Silent refresh - updates data without showing loading indicator
+  /// Used when returning from exam screen to preserve scroll position
+  Future<void> _refreshSubmissionsSilently() async {
+    final response = widget.examId != null
+        ? await _courseService.getExamSubmissionsByExamId(widget.examId!)
+        : await _courseService.getExamSubmissions(widget.lectureId);
+    if (mounted && response.succeeded) {
+      setState(() {
+        _submissions = response.data ?? [];
+        _applySearch();
+      });
+    }
+    // Also refresh non-submitted stats
+    _fetchNonSubmittedStats();
   }
 
   Future<void> _handleAutoSubmit() async {
@@ -310,6 +332,7 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
     IconData icon,
     Color color, {
     VoidCallback? onTap,
+    bool isActive = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
@@ -318,12 +341,17 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceLight : Colors.white,
+          color: isActive
+              ? color.withOpacity(0.15)
+              : (isDark ? AppColors.surfaceLight : Colors.white),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(
+            color: isActive ? color : color.withOpacity(0.2),
+            width: isActive ? 2 : 1,
+          ),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.05),
+              color: color.withOpacity(isActive ? 0.15 : 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -334,7 +362,7 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withOpacity(isActive ? 0.25 : 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 20),
@@ -355,7 +383,7 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
               style: GoogleFonts.inter(
                 fontSize: 9,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+                color: isActive ? color : AppColors.textSecondary,
               ),
             ),
           ],
@@ -411,6 +439,15 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
               pendingCount.toString(),
               Icons.pending_outlined,
               AppColors.warning,
+              onTap: pendingCount > 0
+                  ? () {
+                      setState(() {
+                        _filterPendingOnly = !_filterPendingOnly;
+                        _applySearch();
+                      });
+                    }
+                  : null,
+              isActive: _filterPendingOnly,
             ),
           ),
         ],
@@ -611,41 +648,78 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
         elevation: 0,
         actions: [
           if (widget.examId != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: TextButton.icon(
-                onPressed: _handleAutoSubmit,
-                icon: const Icon(Icons.auto_mode, color: AppColors.primary),
-                label: const Text(
-                  'تسليم تلقائي',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
+            PopupMenuButton<String>(
+              icon: Icon(
+                Icons.more_vert_rounded,
+                color: Theme.of(context).iconTheme.color,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              color: Theme.of(context).cardColor,
+              onSelected: (value) {
+                if (value == 'auto_submit') {
+                  _handleAutoSubmit();
+                } else if (value == 'correct_all') {
+                  _handleCorrectAll();
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem<String>(
+                  value: 'auto_submit',
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.auto_mode,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'تسليم تلقائي',
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                style: TextButton.styleFrom(
-                  backgroundColor: AppColors.primary.withOpacity(0.1),
-                ),
-              ),
-            ),
-          if (widget.examId != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: TextButton.icon(
-                onPressed: _handleCorrectAll,
-                icon: const Icon(Icons.check_circle_outline,
-                    color: AppColors.success),
-                label: const Text(
-                  'تصحيح الكل',
-                  style: TextStyle(
-                    color: AppColors.success,
-                    fontWeight: FontWeight.bold,
+                PopupMenuItem<String>(
+                  value: 'correct_all',
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.check_circle_outline,
+                          color: AppColors.success,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'تصحيح الكل',
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                style: TextButton.styleFrom(
-                  backgroundColor: AppColors.success.withOpacity(0.1),
-                ),
-              ),
+              ],
             ),
         ],
       ),
@@ -1113,7 +1187,7 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
                 viewingStudentName: submission.studentName,
               ),
             ),
-          ).then((_) => _fetchSubmissions());
+          ).then((_) => _refreshSubmissionsSilently());
         },
       ),
     );

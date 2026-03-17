@@ -1377,97 +1377,114 @@ class _LoginScreenState extends State<LoginScreen>
 
           const SizedBox(height: 24),
 
-          // Bottom action pill
-          Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withOpacity(0.04)
-                    : Colors.white.withOpacity(0.7),
-                borderRadius: BorderRadius.circular(50),
-                border: Border.all(
-                  color: Theme.of(context).dividerColor.withOpacity(0.3),
+          // Bottom action cards
+          Row(
+            children: [
+              Expanded(
+                child: _buildActionCard(
+                  onTap: _contactSupport,
+                  icon: FontAwesomeIcons.whatsapp,
+                  label: 'المساعدة',
+                  color: const Color(0xFF25D366),
+                  isDark: isDark,
                 ),
               ),
-              child: Wrap(
-                alignment: WrapAlignment.center,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  _buildFooterButton(
-                    onTap: _contactSupport,
-                    icon: FontAwesomeIcons.whatsapp,
-                    label: 'المساعدة',
-                    color: const Color(0xFF25D366),
-                  ),
-                  _buildDivider(),
-                  _buildFooterButton(
-                    onTap: _isVideoLoading ? () {} : _viewExplanationVideo,
-                    icon: Icons.play_circle_outline_rounded,
-                    label: 'شرح التطبيق',
-                    color: AppColors.accent,
-                    isLoading: _isVideoLoading,
-                  ),
-                  _buildDivider(),
-                  _buildFooterButton(
-                    onTap: _shareApp,
-                    icon: Icons.share_rounded,
-                    label: 'مشاركة',
-                    color: Colors.blueAccent,
-                  ),
-                ],
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildActionCard(
+                  onTap: _isVideoLoading ? () {} : _viewExplanationVideo,
+                  icon: Icons.play_circle_rounded,
+                  label: 'شرح التطبيق',
+                  color: AppColors.primary,
+                  isDark: isDark,
+                  isLoading: _isVideoLoading,
+                ),
               ),
-            ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildActionCard(
+                  onTap: _shareApp,
+                  icon: Icons.share_rounded,
+                  label: 'مشاركة',
+                  color: const Color(0xFF5C6BC0),
+                  isDark: isDark,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDivider() {
-    return Container(
-      width: 1,
-      height: 18,
-      color: Theme.of(context).dividerColor.withOpacity(0.4),
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-    );
-  }
-
-  Widget _buildFooterButton({
+  Widget _buildActionCard({
     required VoidCallback onTap,
     required IconData icon,
     required String label,
     required Color color,
+    required bool isDark,
     bool isLoading = false,
   }) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(30),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.white.withOpacity(0.04)
+              : Colors.white.withOpacity(0.85),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark
+                ? color.withOpacity(0.15)
+                : color.withOpacity(0.12),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(isDark ? 0.08 : 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (isLoading)
-              SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2, color: color),
-              )
-            else
-              Icon(icon, size: 16, color: color),
-            const SizedBox(width: 6),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: color.withOpacity(isDark ? 0.15 : 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: isLoading
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: color,
+                        ),
+                      )
+                    : Icon(icon, size: 18, color: color),
+              ),
+            ),
+            const SizedBox(height: 8),
             Text(
               label,
               style: GoogleFonts.inter(
                 fontWeight: FontWeight.w600,
-                fontSize: 12,
+                fontSize: 11,
                 color: Theme.of(context)
                     .textTheme
                     .bodyMedium
                     ?.color
-                    ?.withOpacity(0.75),
+                    ?.withOpacity(0.8),
               ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

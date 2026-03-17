@@ -263,6 +263,317 @@ class _AllParentsScreenState extends State<AllParentsScreen>
     }
   }
 
+  void _showParentDetailsSheet(ParentAdminModel parent) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.8,
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            // Handle
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(context).dividerColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.success, AppColors.success.withOpacity(0.7)],
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.family_restroom_rounded, color: Colors.white, size: 26),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          parent.fullName,
+                          style: GoogleFonts.outfit(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          parent.email,
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            // Info chips
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                children: [
+                  _buildInfoChip(Icons.phone_rounded, parent.parentPhoneNumber, AppColors.primary),
+                  const SizedBox(width: 8),
+                  _buildInfoChip(Icons.child_care_rounded, '${parent.childrenCount} أطفال', AppColors.success),
+                  const SizedBox(width: 8),
+                  _buildInfoChip(Icons.badge_rounded, 'ID: ${parent.parentId}', AppColors.textSecondary),
+                ],
+              ),
+            ),
+            const Divider(),
+            // Children list
+            Expanded(
+              child: parent.children.isEmpty
+                  ? Center(
+                      child: Text(
+                        'لا توجد بيانات أطفال',
+                        style: GoogleFonts.inter(color: AppColors.textSecondary),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: parent.children.length,
+                      itemBuilder: (context, index) {
+                        final child = parent.children[index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.glassBorder),
+                          ),
+                          child: Theme(
+                            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                            child: ExpansionTile(
+                              tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                              childrenPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+                              leading: CircleAvatar(
+                                backgroundColor: AppColors.primary.withOpacity(0.1),
+                                child: Text(
+                                  '${index + 1}',
+                                  style: GoogleFonts.outfit(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              title: Text(
+                                child.studentFullName,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.email_rounded, size: 12, color: AppColors.textSecondary),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          child.studentEmail,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 11,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.phone_rounded, size: 12, color: AppColors.textSecondary),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        child.studentPhoneNumber,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 11,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${child.courses.length} دورات مسجلة',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.success,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              children: child.courses.isEmpty
+                                  ? [
+                                      Padding(
+                                        padding: const EdgeInsets.all(12),
+                                        child: Text(
+                                          'لا توجد دورات مسجلة',
+                                          style: GoogleFonts.inter(
+                                            color: AppColors.textSecondary,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ),
+                                    ]
+                                  : child.courses.map((course) {
+                                      Color statusColor;
+                                      String statusText;
+                                      switch (course.status.toLowerCase()) {
+                                        case 'approved':
+                                          statusColor = AppColors.success;
+                                          statusText = 'مقبول';
+                                          break;
+                                        case 'pending':
+                                          statusColor = Colors.orange;
+                                          statusText = 'معلق';
+                                          break;
+                                        case 'rejected':
+                                          statusColor = AppColors.error;
+                                          statusText = 'مرفوض';
+                                          break;
+                                        default:
+                                          statusColor = AppColors.textSecondary;
+                                          statusText = course.status;
+                                      }
+
+                                      return Container(
+                                        margin: const EdgeInsets.only(bottom: 8),
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: statusColor.withOpacity(0.05),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: statusColor.withOpacity(0.2)),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    course.courseTitle,
+                                                    style: GoogleFonts.outfit(
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: AppColors.textPrimary,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Row(
+                                                    children: [
+                                                      Icon(Icons.person_rounded, size: 12, color: AppColors.textSecondary),
+                                                      const SizedBox(width: 4),
+                                                      Expanded(
+                                                        child: Text(
+                                                          course.teacherName,
+                                                          style: GoogleFonts.inter(
+                                                            fontSize: 11,
+                                                            color: AppColors.textSecondary,
+                                                          ),
+                                                          overflow: TextOverflow.ellipsis,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: statusColor.withOpacity(0.15),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: Text(
+                                                statusText,
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: statusColor,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String text, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                text,
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _filterParents() {
     setState(() {
       _filteredParents = _parents.where((parent) {
@@ -519,7 +830,9 @@ class _AllParentsScreenState extends State<AllParentsScreen>
   }
 
   Widget _buildParentCard(ParentAdminModel parent) {
-    return Container(
+    return GestureDetector(
+      onTap: () => _showParentDetailsSheet(parent),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -653,28 +966,7 @@ class _AllParentsScreenState extends State<AllParentsScreen>
           onSelected: (value) {
             switch (value) {
               case 'details':
-                showDialog(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('تفاصيل ولي الأمر'),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          leading: const Icon(Icons.phone),
-                          title: const Text('رقم الهاتف'),
-                          subtitle: Text(parent.parentPhoneNumber),
-                        ),
-                      ],
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        child: const Text('إغلاق'),
-                      ),
-                    ],
-                  ),
-                );
+                _showParentDetailsSheet(parent);
                 break;
               case 'logout':
                 _logoutUserFromAllDevices(parent);
@@ -730,6 +1022,7 @@ class _AllParentsScreenState extends State<AllParentsScreen>
           ],
         ),
       ),
+    ),
     );
   }
 }

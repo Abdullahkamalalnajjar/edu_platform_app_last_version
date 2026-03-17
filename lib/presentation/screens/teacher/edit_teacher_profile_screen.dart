@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:edu_platform_app/core/constants/app_colors.dart';
 import 'package:edu_platform_app/data/services/teacher_service.dart';
+import 'package:edu_platform_app/data/services/assistant_service.dart';
 import 'package:edu_platform_app/data/services/token_service.dart';
 import 'package:edu_platform_app/data/services/location_service.dart';
 import 'package:edu_platform_app/data/services/auth_service.dart';
@@ -12,7 +13,9 @@ import 'package:edu_platform_app/presentation/widgets/custom_text_field.dart';
 import 'package:edu_platform_app/presentation/widgets/primary_button.dart';
 
 class EditTeacherProfileScreen extends StatefulWidget {
-  const EditTeacherProfileScreen({super.key});
+  final String? targetUserGuid; // When admin views a specific teacher
+
+  const EditTeacherProfileScreen({super.key, this.targetUserGuid});
 
   @override
   State<EditTeacherProfileScreen> createState() =>
@@ -22,11 +25,16 @@ class EditTeacherProfileScreen extends StatefulWidget {
 class _EditTeacherProfileScreenState extends State<EditTeacherProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _teacherService = TeacherService();
+  final _assistantService = AssistantService();
   final _locationService = LocationService();
   final _authService = AuthService();
   final _tokenService = TokenService();
   final _imagePicker = ImagePicker();
+  bool _isAssistant = false;
+  int _assistantId = 0;
 
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _whatsappController = TextEditingController();
   final _facebookController = TextEditingController();
@@ -56,6 +64,8 @@ class _EditTeacherProfileScreenState extends State<EditTeacherProfileScreen> {
 
   @override
   void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _phoneController.dispose();
     _whatsappController.dispose();
     _facebookController.dispose();
@@ -66,11 +76,33 @@ class _EditTeacherProfileScreenState extends State<EditTeacherProfileScreen> {
   }
 
   Future<void> _initData() async {
-    await Future.wait([
-      _fetchGovernorates(),
-      _fetchEducationStages(),
-      _fetchSubjects(),
-    ]);
+    // Check if user is assistant
+    final role = await _tokenService.getRole();
+    _isAssistant = role == 'Assistant';
+
+    if (_isAssistant) {
+      // Get assistant info using userGuid to discover the correct assistantId
+      final userGuid = await _tokenService.getUserGuid();
+      if (userGuid != null) {
+        final assistantResp = await _assistantService.getAssistantByUserId(userGuid);
+        if (assistantResp.succeeded && assistantResp.data != null) {
+          _assistantId = assistantResp.data!.assistantId;
+        }
+      }
+      // Fallback to userId if getAssistantByUserId failed
+      if (_assistantId == 0) {
+        final userId = await _tokenService.getUserId();
+        if (userId != null) _assistantId = userId;
+      }
+    }
+
+    if (!_isAssistant) {
+      await Future.wait([
+        _fetchGovernorates(),
+        _fetchEducationStages(),
+        _fetchSubjects(),
+      ]);
+    }
     await _fetchProfileData();
   }
 
@@ -109,54 +141,83 @@ class _EditTeacherProfileScreenState extends State<EditTeacherProfileScreen> {
 
   Future<void> _fetchProfileData() async {
     try {
-      final userGuid = await _tokenService.getUserGuid();
-      if (userGuid != null) {
-        final response = await _teacherService.getProfileByGuid(userGuid);
+      if (_isAssistant) {
+        // Use assistant-specific API
+        if (_assistantId == 0) {
+          if (mounted) setState(() => _isLoading = false);
+          return;
+        }
+
+        final response = await _assistantService.getAssistantById(_assistantId);
         if (response.succeeded && response.data != null) {
           final data = response.data!;
           if (!mounted) return;
 
           setState(() {
-            _currentTeacherId = data['teacherId'] ?? 0;
+            _assistantId = data['assistantId'] ?? _assistantId;
+            _firstNameController.text = data['firstName'] ?? '';
+            _lastNameController.text = data['lastName'] ?? '';
             _phoneController.text = data['phoneNumber'] ?? '';
-            _whatsappController.text = data['whatsAppNumber'] ?? '';
-            _facebookController.text = data['facebookUrl'] ?? '';
-            _telegramController.text = data['telegramUrl'] ?? '';
-            _youtubeController.text = data['youTubeChannelUrl'] ?? '';
-            _cityController.text = data['city'] ?? '';
             _existingPhotoUrl = data['photoUrl'];
-
-            if (data['governorate'] != null) {
-              if (_governorates.contains(data['governorate'])) {
-                _selectedGovernorate = data['governorate'];
-              }
-            }
-
-            if (data['subjectId'] != null) {
-              _selectedSubjectId = data['subjectId'];
-            } else if (data['subject'] != null &&
-                data['subject']['id'] != null) {
-              _selectedSubjectId = data['subject']['id'];
-            }
-
-            _selectedStageIds.clear();
-            if (data['educationStageIds'] != null) {
-              _selectedStageIds.addAll(
-                List<int>.from(data['educationStageIds']),
-              );
-            }
-
             _isLoading = false;
           });
-
-          if (_currentTeacherId != 0) {
-            await _tokenService.saveTeacherId(_currentTeacherId);
-          }
         } else {
           if (mounted) setState(() => _isLoading = false);
         }
       } else {
-        if (mounted) setState(() => _isLoading = false);
+        // Use teacher API
+        final userGuid = widget.targetUserGuid ?? await _tokenService.getUserGuid();
+        if (userGuid != null) {
+          final response = await _teacherService.getProfileByGuid(userGuid);
+          if (response.succeeded && response.data != null) {
+            final data = response.data!;
+            if (!mounted) return;
+
+            setState(() {
+              _currentTeacherId = data['teacherId'] ?? 0;
+              _firstNameController.text = data['firstName'] ?? '';
+              _lastNameController.text = data['lastName'] ?? '';
+              _phoneController.text = data['phoneNumber'] ?? '';
+              _existingPhotoUrl = data['photoUrl'];
+
+              _whatsappController.text = data['whatsAppNumber'] ?? '';
+              _facebookController.text = data['facebookUrl'] ?? '';
+              _telegramController.text = data['telegramUrl'] ?? '';
+              _youtubeController.text = data['youTubeChannelUrl'] ?? '';
+              _cityController.text = data['city'] ?? '';
+
+              if (data['governorate'] != null) {
+                if (_governorates.contains(data['governorate'])) {
+                  _selectedGovernorate = data['governorate'];
+                }
+              }
+
+              if (data['subjectId'] != null) {
+                _selectedSubjectId = data['subjectId'];
+              } else if (data['subject'] != null &&
+                  data['subject']['id'] != null) {
+                _selectedSubjectId = data['subject']['id'];
+              }
+
+              _selectedStageIds.clear();
+              if (data['educationStageIds'] != null) {
+                _selectedStageIds.addAll(
+                  List<int>.from(data['educationStageIds']),
+                );
+              }
+
+              _isLoading = false;
+            });
+
+            if (_currentTeacherId != 0) {
+              await _tokenService.saveTeacherId(_currentTeacherId);
+            }
+          } else {
+            if (mounted) setState(() => _isLoading = false);
+          }
+        } else {
+          if (mounted) setState(() => _isLoading = false);
+        }
       }
     } catch (e) {
       print('Error fetching profile data: $e');
@@ -184,50 +245,85 @@ class _EditTeacherProfileScreenState extends State<EditTeacherProfileScreen> {
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_currentTeacherId == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('خطأ: لم يتم العثور على بيانات المعلم'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
-
     setState(() => _isLoading = true);
 
-    final response = await _teacherService.updateProfile(
-      teacherId: _currentTeacherId,
-      phoneNumber: _phoneController.text,
-      governorate: _selectedGovernorate ?? '',
-      city: _cityController.text,
-      subjectId: _selectedSubjectId ?? 0,
-      facebookUrl: _facebookController.text,
-      telegramUrl: _telegramController.text,
-      whatsAppNumber: _whatsappController.text,
-      youTubeChannelUrl: _youtubeController.text,
-      educationStageIds: _selectedStageIds,
-      photoPath: _selectedImage?.path,
-    );
-
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-
-    if (response.succeeded) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم تحديث الملف الشخصي بنجاح'),
-          backgroundColor: Colors.green,
-        ),
+    if (_isAssistant) {
+      // Use assistant API
+      final response = await _assistantService.updateProfile(
+        assistantId: _assistantId,
+        firstName: _firstNameController.text,
+        lastName: _lastNameController.text,
+        phoneNumber: _phoneController.text,
+        photoPath: _selectedImage?.path,
       );
-      Navigator.pop(context);
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (response.succeeded) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم تحديث الملف الشخصي بنجاح'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.message),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(response.message),
-          backgroundColor: AppColors.error,
-        ),
+      // Use teacher API
+      if (_currentTeacherId == 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('خطأ: لم يتم العثور على بيانات المعلم'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final response = await _teacherService.updateProfile(
+        teacherId: _currentTeacherId,
+        phoneNumber: _phoneController.text,
+        governorate: _selectedGovernorate ?? '',
+        city: _cityController.text,
+        subjectId: _selectedSubjectId ?? 0,
+        firstName: _firstNameController.text,
+        lastName: _lastNameController.text,
+        facebookUrl: _facebookController.text,
+        telegramUrl: _telegramController.text,
+        whatsAppNumber: _whatsappController.text,
+        youTubeChannelUrl: _youtubeController.text,
+        educationStageIds: _selectedStageIds,
+        photoPath: _selectedImage?.path,
       );
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (response.succeeded) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم تحديث الملف الشخصي بنجاح'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.message),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -338,6 +434,22 @@ class _EditTeacherProfileScreenState extends State<EditTeacherProfileScreen> {
                       ),
                       const SizedBox(height: 32),
                       CustomTextField(
+                        controller: _firstNameController,
+                        hintText: 'الاسم الأول',
+                        prefixIcon: Icons.person_outline_rounded,
+                        validator: (v) =>
+                            v?.isNotEmpty == true ? null : 'مطلوب',
+                      ),
+                      const SizedBox(height: 16),
+                      CustomTextField(
+                        controller: _lastNameController,
+                        hintText: 'الاسم الأخير',
+                        prefixIcon: Icons.person_rounded,
+                        validator: (v) =>
+                            v?.isNotEmpty == true ? null : 'مطلوب',
+                      ),
+                      const SizedBox(height: 16),
+                      CustomTextField(
                         controller: _phoneController,
                         hintText: 'رقم الهاتف',
                         prefixIcon: Icons.phone,
@@ -345,154 +457,157 @@ class _EditTeacherProfileScreenState extends State<EditTeacherProfileScreen> {
                         validator: (v) =>
                             v?.isNotEmpty == true ? null : 'مطلوب',
                       ),
-                      const SizedBox(height: 16),
-                      CustomTextField(
-                        controller: _whatsappController,
-                        hintText: 'رقم الواتساب',
-                        prefixIcon: Icons.chat_rounded,
-                        keyboardType: TextInputType.phone,
-                        validator: (v) =>
-                            v?.isNotEmpty == true ? null : 'مطلوب',
-                      ),
-                      const SizedBox(height: 16),
-                      CustomTextField(
-                        controller: _cityController,
-                        hintText: 'المدينة',
-                        prefixIcon: Icons.location_city,
-                        validator: (v) =>
-                            v?.isNotEmpty == true ? null : 'مطلوب',
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
+                      // Teacher-only fields
+                      if (!_isAssistant) ...[
+                        const SizedBox(height: 16),
+                        CustomTextField(
+                          controller: _whatsappController,
+                          hintText: 'رقم الواتساب',
+                          prefixIcon: Icons.chat_rounded,
+                          keyboardType: TextInputType.phone,
+                          validator: (v) =>
+                              v?.isNotEmpty == true ? null : 'مطلوب',
                         ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).cardColor,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: Theme.of(context).dividerColor,
+                        const SizedBox(height: 16),
+                        CustomTextField(
+                          controller: _cityController,
+                          hintText: 'المدينة',
+                          prefixIcon: Icons.location_city,
+                          validator: (v) =>
+                              v?.isNotEmpty == true ? null : 'مطلوب',
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
                           ),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedGovernorate,
-                            hint: Text(
-                              'المحافظة',
-                              style: GoogleFonts.inter(
-                                color: Theme.of(
-                                  context,
-                                ).textTheme.bodyMedium?.color,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardColor,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: Theme.of(context).dividerColor,
+                            ),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedGovernorate,
+                              hint: Text(
+                                'المحافظة',
+                                style: GoogleFonts.inter(
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium?.color,
+                                ),
                               ),
+                              isExpanded: true,
+                              dropdownColor: Theme.of(context).cardColor,
+                              items: _governorates.map((g) {
+                                return DropdownMenuItem(value: g, child: Text(g));
+                              }).toList(),
+                              onChanged: (v) =>
+                                  setState(() => _selectedGovernorate = v),
                             ),
-                            isExpanded: true,
-                            dropdownColor: Theme.of(context).cardColor,
-                            items: _governorates.map((g) {
-                              return DropdownMenuItem(value: g, child: Text(g));
-                            }).toList(),
-                            onChanged: (v) =>
-                                setState(() => _selectedGovernorate = v),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).cardColor,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: Theme.of(context).dividerColor,
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
                           ),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<int>(
-                            value: _selectedSubjectId,
-                            hint: Text(
-                              'المادة',
-                              style: GoogleFonts.inter(
-                                color: Theme.of(
-                                  context,
-                                ).textTheme.bodyMedium?.color,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardColor,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: Theme.of(context).dividerColor,
+                            ),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<int>(
+                              value: _selectedSubjectId,
+                              hint: Text(
+                                'المادة',
+                                style: GoogleFonts.inter(
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium?.color,
+                                ),
                               ),
+                              isExpanded: true,
+                              dropdownColor: Theme.of(context).cardColor,
+                              items: _allSubjects.map((s) {
+                                return DropdownMenuItem(
+                                  value: s.id,
+                                  child: Text(s.name),
+                                );
+                              }).toList(),
+                              onChanged: (v) =>
+                                  setState(() => _selectedSubjectId = v),
                             ),
-                            isExpanded: true,
-                            dropdownColor: Theme.of(context).cardColor,
-                            items: _allSubjects.map((s) {
-                              return DropdownMenuItem(
-                                value: s.id,
-                                child: Text(s.name),
-                              );
-                            }).toList(),
-                            onChanged: (v) =>
-                                setState(() => _selectedSubjectId = v),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'المراحل الدراسية',
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                        const SizedBox(height: 16),
+                        Text(
+                          'المراحل الدراسية',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _allEducationStages.map((stage) {
-                          final isSelected = _selectedStageIds.contains(
-                            stage.id,
-                          );
-                          return FilterChip(
-                            label: Text(stage.name),
-                            selected: isSelected,
-                            onSelected: (_) => _toggleStage(stage.id),
-                            selectedColor: AppColors.primary.withOpacity(0.2),
-                            checkmarkColor: AppColors.primary,
-                            backgroundColor: Theme.of(context).cardColor,
-                            labelStyle: TextStyle(
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : Theme.of(
-                                      context,
-                                    ).textTheme.bodyMedium?.color,
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 16),
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      Text(
-                        'روابط التواصل الاجتماعي',
-                        style: GoogleFonts.inter(
-                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _allEducationStages.map((stage) {
+                            final isSelected = _selectedStageIds.contains(
+                              stage.id,
+                            );
+                            return FilterChip(
+                              label: Text(stage.name),
+                              selected: isSelected,
+                              onSelected: (_) => _toggleStage(stage.id),
+                              selectedColor: AppColors.primary.withOpacity(0.2),
+                              checkmarkColor: AppColors.primary,
+                              backgroundColor: Theme.of(context).cardColor,
+                              labelStyle: TextStyle(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium?.color,
+                              ),
+                            );
+                          }).toList(),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      CustomTextField(
-                        controller: _facebookController,
-                        hintText: 'رابط فيسبوك',
-                        prefixIcon: Icons.facebook,
-                      ),
-                      const SizedBox(height: 16),
-                      CustomTextField(
-                        controller: _telegramController,
-                        hintText: 'رابط تليجرام',
-                        prefixIcon: Icons.send_rounded,
-                      ),
-                      const SizedBox(height: 16),
-                      CustomTextField(
-                        controller: _youtubeController,
-                        hintText: 'رابط يوتيوب',
-                        prefixIcon: Icons.video_library_rounded,
-                      ),
+                        const SizedBox(height: 16),
+                        const Divider(),
+                        const SizedBox(height: 8),
+                        Text(
+                          'روابط التواصل الاجتماعي',
+                          style: GoogleFonts.inter(
+                            color: Theme.of(context).textTheme.bodyMedium?.color,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        CustomTextField(
+                          controller: _facebookController,
+                          hintText: 'رابط فيسبوك',
+                          prefixIcon: Icons.facebook,
+                        ),
+                        const SizedBox(height: 16),
+                        CustomTextField(
+                          controller: _telegramController,
+                          hintText: 'رابط تليجرام',
+                          prefixIcon: Icons.send_rounded,
+                        ),
+                        const SizedBox(height: 16),
+                        CustomTextField(
+                          controller: _youtubeController,
+                          hintText: 'رابط يوتيوب',
+                          prefixIcon: Icons.video_library_rounded,
+                        ),
+                      ],
                       const SizedBox(height: 32),
                       PrimaryButton(
                         onPressed: _handleSubmit,

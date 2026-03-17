@@ -3,9 +3,9 @@ class ApiConstants {
 
   // Auth Headers
   static Map<String, String> get headers => {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  };
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
 
   // Auth Endpoints
   static const String signin = '$baseUrl/api/v1/auth/signin';
