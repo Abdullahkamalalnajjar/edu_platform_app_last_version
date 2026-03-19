@@ -257,8 +257,43 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
 
               // Initialize Teacher Grading State
               if (widget.isTeacher && widget.viewingStudentId != null) {
-                if (ans.pointsEarned != null) {
-                  _teacherPoints[ans.questionId] = ans.pointsEarned!;
+                // For MCQ: auto-fill score based on correctness
+                if (ans.answerType == 'MCQ') {
+                  // MCQ: default = question score (same as "الدرجة" field)
+                  final questionScore = fetchedExam.questions
+                          .where((q) => q.id == ans.questionId)
+                          .map((q) => q.score)
+                          .firstOrNull ??
+                      ans.maxScore;
+                  // Determine correctness from options (don't rely on ans.isCorrect)
+                  // Check if student selected the correct option(s)
+                  bool mcqCorrect = false;
+                  if (ans.questionOptions.isNotEmpty) {
+                    final correctIds = ans.questionOptions
+                        .where((o) => o.isCorrect)
+                        .map((o) => o.optionId)
+                        .toSet();
+                    final selectedIds = ans.questionOptions
+                        .where((o) => o.isSelected)
+                        .map((o) => o.optionId)
+                        .toSet();
+                    mcqCorrect = correctIds.isNotEmpty &&
+                        correctIds.length == selectedIds.length &&
+                        correctIds.containsAll(selectedIds);
+                  } else {
+                    mcqCorrect = ans.isCorrect;
+                  }
+
+                  print('🔍 MCQ AUTO-GRADE: questionId=${ans.questionId}, '
+                      'mcqCorrect=$mcqCorrect, questionScore=$questionScore');
+                  // correct → full score, wrong → 0
+                  _teacherPoints[ans.questionId] =
+                      mcqCorrect ? questionScore.toDouble() : 0.0;
+                } else {
+                  // For Essay/Image: use server value if available
+                  if (ans.pointsEarned != null) {
+                    _teacherPoints[ans.questionId] = ans.pointsEarned!;
+                  }
                 }
                 if (ans.feedback != null) {
                   _teacherFeedback[ans.questionId] = ans.feedback!;
@@ -2838,6 +2873,26 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
     final result = _studentAnswerResults[question.id];
     if (result == null) return const SizedBox.shrink();
 
+    final isMCQ = question.answerType == 'MCQ';
+
+    // Determine MCQ correctness from options
+    bool mcqCorrect = false;
+    if (isMCQ && result.questionOptions.isNotEmpty) {
+      final correctIds = result.questionOptions
+          .where((o) => o.isCorrect)
+          .map((o) => o.optionId)
+          .toSet();
+      final selectedIds = result.questionOptions
+          .where((o) => o.isSelected)
+          .map((o) => o.optionId)
+          .toSet();
+      mcqCorrect = correctIds.isNotEmpty &&
+          correctIds.length == selectedIds.length &&
+          correctIds.containsAll(selectedIds);
+    } else if (isMCQ) {
+      mcqCorrect = result.isCorrect;
+    }
+
     // All questions get editable grading fields
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2857,6 +2912,56 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                 color: AppColors.success,
               ),
             ),
+            if (isMCQ) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: mcqCorrect
+                      ? AppColors.success.withOpacity(0.15)
+                      : AppColors.error.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      mcqCorrect
+                          ? Icons.check_circle_rounded
+                          : Icons.cancel_rounded,
+                      size: 14,
+                      color: mcqCorrect
+                          ? AppColors.success
+                          : AppColors.error,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      mcqCorrect ? 'إجابة صحيحة' : 'إجابة خاطئة',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: mcqCorrect
+                            ? AppColors.success
+                            : AppColors.error,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '(تصحيح تلقائي)',
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  color: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.color
+                      ?.withOpacity(0.5),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
           ],
         ),
         const SizedBox(height: 16),
@@ -2889,6 +2994,16 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
+                      suffixIcon: isMCQ
+                          ? Tooltip(
+                              message: 'تم التصحيح تلقائياً - يمكنك التعديل',
+                              child: Icon(
+                                Icons.auto_fix_high_rounded,
+                                size: 18,
+                                color: AppColors.primary.withOpacity(0.6),
+                              ),
+                            )
+                          : null,
                     ),
                     onChanged: (val) {
                       final score = double.tryParse(val);
@@ -3192,7 +3307,8 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
             if (_isGraded) ...[
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                 decoration: BoxDecoration(
                   color: AppColors.success.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),

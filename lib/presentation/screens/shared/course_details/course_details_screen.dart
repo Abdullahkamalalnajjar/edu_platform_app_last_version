@@ -2285,180 +2285,409 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
   Future<void> _showAddLectureDialog() async {
     final titleController = TextEditingController();
     String? selectedCoverImagePath;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    await showDialog(
+    await showModalBottomSheet(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: Theme.of(context).cardColor,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(
-            'إضافة محاضرة جديدة',
-            style: GoogleFonts.outfit(
-              color: Theme.of(context).textTheme.bodyLarge?.color,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sbContext, setSheetState) {
+          return Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
             ),
-          ),
-          content: SingleChildScrollView(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 20,
+                  offset: const Offset(0, -5),
+                ),
+              ],
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title field
-                TextField(
-                  controller: titleController,
-                  style: TextStyle(
-                      color: Theme.of(context).textTheme.bodyLarge?.color),
-                  decoration: InputDecoration(
-                    labelText: 'عنوان المحاضرة',
-                    labelStyle: TextStyle(
-                        color:
-                            Theme.of(context).textTheme.bodyMedium?.color),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          BorderSide(color: Theme.of(context).dividerColor),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          const BorderSide(color: AppColors.primary),
-                    ),
+                // ── Handle bar ──
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(height: 16),
-                // Cover image label
-                Text(
-                  'صورة الغلاف (اختياري)',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // Preview selected image
-                if (selectedCoverImagePath != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: _buildFileImage(selectedCoverImagePath!),
-                    ),
-                  ),
-                // Picker button
-                InkWell(
-                  onTap: () async {
-                    final result = await FilePicker.platform.pickFiles(
-                      type: FileType.image,
-                    );
-                    if (result != null &&
-                        result.files.single.path != null) {
-                      setDialogState(() {
-                        selectedCoverImagePath = result.files.single.path;
-                      });
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 12),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                          color: AppColors.primary.withOpacity(0.4),
-                          style: BorderStyle.solid),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.image_outlined,
-                            color: AppColors.primary, size: 20),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            selectedCoverImagePath != null
-                                ? selectedCoverImagePath!
-                                    .split('/')
-                                    .last
-                                    .split('\\')
-                                    .last
-                                : 'اختر صورة غلاف',
-                            style: GoogleFonts.inter(
-                              color: selectedCoverImagePath != null
-                                  ? Theme.of(context)
-                                      .textTheme
-                                      .bodyLarge
-                                      ?.color
-                                  : Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.color,
-                              fontSize: 13,
+
+                // ── Header ──
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [AppColors.primary, Color(0xFFE53935)],
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
                             ),
-                            overflow: TextOverflow.ellipsis,
+                          ],
+                        ),
+                        child: const Icon(Icons.library_books_rounded, color: Colors.white, size: 22),
+                      ),
+                      const SizedBox(width: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'إضافة محاضرة جديدة',
+                            style: GoogleFonts.tajawal(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                          Text(
+                            widget.course.title,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: isDark ? Colors.white54 : Colors.black45,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () => Navigator.pop(sheetContext),
+                        icon: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white10 : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: isDark ? Colors.white60 : Colors.black54,
                           ),
                         ),
-                        if (selectedCoverImagePath != null)
-                          GestureDetector(
-                            onTap: () => setDialogState(
-                                () => selectedCoverImagePath = null),
-                            child: const Icon(Icons.close,
-                                size: 16,
-                                color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Divider(color: isDark ? Colors.white10 : Colors.grey.shade200),
+
+                // ── Content ──
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── Title Input ──
+                        Text(
+                          'عنوان المحاضرة *',
+                          style: GoogleFonts.tajawal(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white70 : Colors.black54,
                           ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: titleController,
+                          style: TextStyle(
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'أدخل عنوان المحاضرة',
+                            hintStyle: TextStyle(
+                              color: isDark ? Colors.white30 : Colors.black26,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.edit_note_rounded,
+                              color: AppColors.primary,
+                              size: 22,
+                            ),
+                            filled: true,
+                            fillColor: isDark
+                                ? Colors.white.withOpacity(0.06)
+                                : Colors.grey.shade50,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(
+                                color: isDark ? Colors.white12 : Colors.grey.shade200,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(
+                                color: AppColors.primary,
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // ── Cover Image ──
+                        Text(
+                          'صورة الغلاف (اختياري)',
+                          style: GoogleFonts.tajawal(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white70 : Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Preview
+                        if (selectedCoverImagePath != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: _buildFileImage(selectedCoverImagePath!, height: 140),
+                                ),
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: GestureDetector(
+                                    onTap: () => setSheetState(() => selectedCoverImagePath = null),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.error.withOpacity(0.9),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(
+                                        Icons.close_rounded,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                        // Picker
+                        GestureDetector(
+                          onTap: () async {
+                            final result = await FilePicker.platform.pickFiles(
+                              type: FileType.image,
+                            );
+                            if (result != null && result.files.single.path != null) {
+                              setSheetState(() {
+                                selectedCoverImagePath = result.files.single.path;
+                              });
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: selectedCoverImagePath != null
+                                  ? AppColors.success.withOpacity(isDark ? 0.12 : 0.06)
+                                  : isDark
+                                      ? Colors.white.withOpacity(0.04)
+                                      : Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: selectedCoverImagePath != null
+                                    ? AppColors.success.withOpacity(0.4)
+                                    : isDark
+                                        ? Colors.white12
+                                        : Colors.grey.shade200,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  selectedCoverImagePath != null
+                                      ? Icons.image_rounded
+                                      : Icons.add_photo_alternate_outlined,
+                                  color: selectedCoverImagePath != null
+                                      ? AppColors.success
+                                      : isDark
+                                          ? Colors.white.withOpacity(0.4)
+                                          : Colors.grey.shade500,
+                                  size: 22,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    selectedCoverImagePath != null
+                                        ? selectedCoverImagePath!
+                                            .split('/').last
+                                            .split('\\').last
+                                        : 'اختر صورة غلاف للمحاضرة',
+                                    style: GoogleFonts.tajawal(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: selectedCoverImagePath != null
+                                          ? AppColors.success
+                                          : isDark
+                                              ? Colors.white54
+                                              : Colors.black45,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // ── Info Note ──
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withOpacity(isDark ? 0.1 : 0.06),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.amber.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline_rounded,
+                                size: 18, color: Colors.amber.shade700),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'المحاضرة ستكون مخفية بشكل افتراضي حتى تقوم بإظهارها',
+                                  style: GoogleFonts.tajawal(
+                                    fontSize: 12,
+                                    color: isDark ? Colors.amber.shade200 : Colors.amber.shade800,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // ── Action Buttons ──
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(sheetContext),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  side: BorderSide(
+                                    color: isDark ? Colors.white24 : Colors.grey.shade300,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                child: Text(
+                                  'إلغاء',
+                                  style: GoogleFonts.tajawal(
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? Colors.white54 : Colors.black45,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 2,
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  if (titleController.text.isNotEmpty) {
+                                    Navigator.pop(sheetContext);
+                                    final request = LectureRequest(
+                                      title: titleController.text,
+                                      courseId: widget.course.id,
+                                    );
+                                    final response = await _teacherService.createLecture(
+                                      request,
+                                      coverImagePath: selectedCoverImagePath,
+                                    );
+                                    if (response.succeeded && response.data != null) {
+                                      await _teacherService.changeLectureVisibility(
+                                        lectureId: response.data!,
+                                        isVisible: false,
+                                      );
+                                      await _refreshCourse();
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('تم إضافة المحاضرة بنجاح (مخفية)'),
+                                            backgroundColor: AppColors.success,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('يرجى إدخال عنوان المحاضرة'),
+                                        backgroundColor: AppColors.error,
+                                      ),
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.add_rounded, size: 20),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'إضافة محاضرة',
+                                      style: GoogleFonts.tajawal(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
                       ],
                     ),
                   ),
                 ),
               ],
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(
-                'إلغاء',
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyMedium?.color,
-                ),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (titleController.text.isNotEmpty) {
-                  Navigator.pop(dialogContext);
-                  final request = LectureRequest(
-                    title: titleController.text,
-                    courseId: widget.course.id,
-                  );
-                  final response = await _teacherService.createLecture(
-                    request,
-                    coverImagePath: selectedCoverImagePath,
-                  );
-                  if (response.succeeded && response.data != null) {
-                    await _teacherService.changeLectureVisibility(
-                      lectureId: response.data!,
-                      isVisible: false,
-                    );
-                    await _refreshCourse();
-                    if (mounted)
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('تم إضافة المحاضرة بنجاح (مخفية)'),
-                        ),
-                      );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text('إضافة'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -2472,512 +2701,741 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
     String selectedType = 'Video';
     bool isFree = false;
     PlatformFile? selectedFile;
-    String? coverImagePath; // optional cover image
+    String? coverImagePath;
 
-    await showDialog(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    await showModalBottomSheet(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (sbContext, setDialogState) => AlertDialog(
-          backgroundColor: Theme.of(context).cardColor,
-          title: Text(
-            'إضافة مادة',
-            style: GoogleFonts.outfit(
-              color: Theme.of(context).textTheme.bodyLarge?.color,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sbContext, setSheetState) {
+          return Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.88,
             ),
-          ),
-          content: SingleChildScrollView(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 20,
+                  offset: const Offset(0, -5),
+                ),
+              ],
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Material Title Input
-                TextField(
-                  controller: titleController,
-                  decoration: InputDecoration(
-                    labelText: 'عنوان المادة *',
-                    labelStyle: TextStyle(
-                      color: Theme.of(context).textTheme.bodyMedium?.color,
-                    ),
-                    hintText: 'أدخل عنوان المادة',
-                    hintStyle: TextStyle(
-                      color: Theme.of(
-                        context,
-                      ).textTheme.bodyMedium?.color?.withOpacity(0.5),
-                    ),
-                    prefixIcon: const Icon(
-                      Icons.title_rounded,
-                      color: AppColors.primary,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(
-                              context,
-                            ).textTheme.bodyMedium?.color?.withOpacity(0.3) ??
-                            AppColors.textSecondary,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.primary),
-                    ),
-                  ),
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyLarge?.color,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Material Type Dropdown
+                // ── Handle bar ──
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
                   decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium?.color?.withOpacity(0.3) ??
-                          AppColors.textSecondary,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: selectedType,
-                      isExpanded: true,
-                      dropdownColor: Theme.of(context).cardColor,
-                      style: TextStyle(
-                        color: Theme.of(context).textTheme.bodyLarge?.color,
-                      ),
-                      items: materialTypes.map((type) {
-                        return DropdownMenuItem(
-                          value: type,
-                          child: Row(
-                            children: [
-                              Icon(
-                                _getMaterialIcon(type),
-                                color: AppColors.primary,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(type),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setDialogState(() {
-                          selectedType = value!;
-                          selectedFile = null; // Reset file when type changes
-                          urlController.clear();
-                        });
-                      },
-                    ),
+                    color: isDark ? Colors.white24 : Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(height: 16),
-                // Video URL Input (only for Video type)
-                if (selectedType == 'Video')
-                  TextField(
-                    controller: urlController,
-                    decoration: InputDecoration(
-                      labelText: 'رابط الفيديو (يوتيوب)',
-                      labelStyle: TextStyle(
-                        color: Theme.of(context).textTheme.bodyMedium?.color,
-                      ),
-                      hintText: 'https://youtu.be/...',
-                      hintStyle: TextStyle(
-                        color: AppColors.textSecondary.withOpacity(0.5),
-                      ),
-                      prefixIcon: Icon(
-                        _getMaterialIcon(selectedType),
-                        color: AppColors.primary,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(
-                          color: AppColors.textSecondary.withOpacity(0.3),
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: AppColors.primary),
-                      ),
-                    ),
-                    style: TextStyle(color: AppColors.textPrimary),
-                  ),
-                // File Picker for PDF, Image, Homework
-                if (selectedType != 'Video')
-                  InkWell(
-                    onTap: () async {
-                      FileType fileType = FileType.any;
-                      List<String>? allowedExtensions;
 
-                      if (selectedType == 'Pdf') {
-                        fileType = FileType.custom;
-                        allowedExtensions = ['pdf'];
-                      } else if (selectedType == 'Image') {
-                        fileType = FileType.image;
-                      } else if (selectedType == 'Homework') {
-                        fileType = FileType.custom;
-                        allowedExtensions = [
-                          'pdf',
-                          'doc',
-                          'docx',
-                          'jpg',
-                          'jpeg',
-                          'png',
-                        ];
-                      }
-
-                      final result = await FilePicker.platform.pickFiles(
-                        type: fileType,
-                        allowedExtensions: allowedExtensions,
-                      );
-
-                      if (result != null && result.files.isNotEmpty) {
-                        setDialogState(() {
-                          selectedFile = result.files.first;
-                        });
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: selectedFile != null
-                            ? AppColors.success.withOpacity(0.1)
-                            : AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: selectedFile != null
-                              ? AppColors.success.withOpacity(0.3)
-                              : AppColors.primary.withOpacity(0.3),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            selectedFile != null
-                                ? Icons.check_circle_rounded
-                                : Icons.upload_file_rounded,
-                            color: selectedFile != null
-                                ? AppColors.success
-                                : AppColors.primary,
+                // ── Header ──
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  selectedFile != null
-                                      ? 'تم اختيار الملف'
-                                      : 'اضغط لاختيار ملف',
-                                  style: GoogleFonts.inter(
-                                    color: selectedFile != null
-                                        ? AppColors.success
-                                        : AppColors.primary,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF4CAF50).withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(Icons.add_rounded, color: Colors.white, size: 22),
+                      ),
+                      const SizedBox(width: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'إضافة مادة جديدة',
+                            style: GoogleFonts.tajawal(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                          Text(
+                            lecture.title,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: isDark ? Colors.white54 : Colors.black45,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () => Navigator.pop(sheetContext),
+                        icon: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white10 : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: isDark ? Colors.white60 : Colors.black54,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Divider(color: isDark ? Colors.white10 : Colors.grey.shade200),
+
+                // ── Content ──
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── Title Input ──
+                        Text(
+                          'عنوان المادة *',
+                          style: GoogleFonts.tajawal(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white70 : Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: titleController,
+                          style: TextStyle(
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'أدخل عنوان المادة',
+                            hintStyle: TextStyle(
+                              color: isDark ? Colors.white30 : Colors.black26,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.title_rounded,
+                              color: AppColors.success,
+                              size: 20,
+                            ),
+                            filled: true,
+                            fillColor: isDark
+                                ? Colors.white.withOpacity(0.06)
+                                : Colors.grey.shade50,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(
+                                color: isDark ? Colors.white12 : Colors.grey.shade200,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(
+                                color: AppColors.success,
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // ── Material Type Chips ──
+                        Text(
+                          'نوع المادة',
+                          style: GoogleFonts.tajawal(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white70 : Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: materialTypes.map((type) {
+                            final isSelected = selectedType == type;
+                            final chipColor = _getMaterialChipColor(type);
+                            return GestureDetector(
+                              onTap: () {
+                                setSheetState(() {
+                                  selectedType = type;
+                                  selectedFile = null;
+                                  urlController.clear();
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? chipColor.withOpacity(0.15)
+                                      : isDark
+                                          ? Colors.white.withOpacity(0.05)
+                                          : Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? chipColor
+                                        : isDark
+                                            ? Colors.white12
+                                            : Colors.grey.shade200,
+                                    width: isSelected ? 1.5 : 1,
                                   ),
                                 ),
-                                if (selectedFile != null)
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _getMaterialIcon(type),
+                                      size: 18,
+                                      color: isSelected
+                                          ? chipColor
+                                          : isDark
+                                              ? Colors.white.withOpacity(0.4)
+                                              : Colors.black38,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      _getMaterialLabel(type),
+                                      style: GoogleFonts.tajawal(
+                                        fontSize: 13,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                        color: isSelected
+                                            ? chipColor
+                                            : isDark
+                                                ? Colors.white60
+                                                : Colors.black54,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // ── Video URL or File Picker ──
+                        if (selectedType == 'Video') ...[
+                          Text(
+                            'رابط الفيديو *',
+                            style: GoogleFonts.tajawal(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: urlController,
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'https://youtu.be/...',
+                              hintStyle: TextStyle(
+                                color: isDark ? Colors.white30 : Colors.black26,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.play_circle_rounded,
+                                color: Color(0xFFFF5252),
+                                size: 20,
+                              ),
+                              filled: true,
+                              fillColor: isDark
+                                  ? Colors.white.withOpacity(0.06)
+                                  : Colors.grey.shade50,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide(
+                                  color: isDark ? Colors.white12 : Colors.grey.shade200,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFFF5252),
+                                  width: 1.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ] else ...[
+                          // File Picker
+                          GestureDetector(
+                            onTap: () async {
+                              FileType fileType = FileType.any;
+                              List<String>? allowedExtensions;
+
+                              if (selectedType == 'Pdf') {
+                                fileType = FileType.custom;
+                                allowedExtensions = ['pdf'];
+                              } else if (selectedType == 'Image') {
+                                fileType = FileType.image;
+                              } else if (selectedType == 'Homework') {
+                                fileType = FileType.custom;
+                                allowedExtensions = [
+                                  'pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png',
+                                ];
+                              }
+
+                              final result = await FilePicker.platform.pickFiles(
+                                type: fileType,
+                                allowedExtensions: allowedExtensions,
+                              );
+
+                              if (result != null && result.files.isNotEmpty) {
+                                setSheetState(() {
+                                  selectedFile = result.files.first;
+                                });
+                              }
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 250),
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: selectedFile != null
+                                    ? AppColors.success.withOpacity(isDark ? 0.12 : 0.06)
+                                    : isDark
+                                        ? Colors.white.withOpacity(0.04)
+                                        : Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: selectedFile != null
+                                      ? AppColors.success.withOpacity(0.5)
+                                      : isDark
+                                          ? Colors.white12
+                                          : Colors.grey.shade200,
+                                  width: selectedFile != null ? 1.5 : 1,
+                                  style: selectedFile != null
+                                      ? BorderStyle.solid
+                                      : BorderStyle.solid,
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    selectedFile != null
+                                        ? Icons.check_circle_rounded
+                                        : Icons.cloud_upload_rounded,
+                                    size: 36,
+                                    color: selectedFile != null
+                                        ? AppColors.success
+                                        : isDark
+                                            ? Colors.white30
+                                            : Colors.grey.shade400,
+                                  ),
+                                  const SizedBox(height: 10),
                                   Text(
-                                    selectedFile!.name,
+                                    selectedFile != null
+                                        ? 'تم اختيار الملف'
+                                        : 'اضغط لاختيار ملف',
+                                    style: GoogleFonts.tajawal(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: selectedFile != null
+                                          ? AppColors.success
+                                          : isDark
+                                              ? Colors.white54
+                                              : Colors.black45,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    selectedFile != null
+                                        ? selectedFile!.name
+                                        : _getFileTypeHint(selectedType),
                                     style: GoogleFonts.inter(
-                                      color: Theme.of(
-                                        context,
-                                      ).textTheme.bodyMedium?.color,
-                                      fontSize: 12,
+                                      fontSize: 11,
+                                      color: isDark ? Colors.white38 : Colors.black38,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                if (selectedFile == null)
-                                  Text(
-                                    _getFileTypeHint(selectedType),
-                                    style: GoogleFonts.inter(
-                                      color: Theme.of(
-                                        context,
-                                      ).textTheme.bodyMedium?.color,
-                                      fontSize: 12,
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+
+                        const SizedBox(height: 16),
+
+                        // ── Cover Image ──
+                        GestureDetector(
+                          onTap: () async {
+                            final result = await FilePicker.platform.pickFiles(
+                              type: FileType.image,
+                            );
+                            if (result != null && result.files.isNotEmpty) {
+                              setSheetState(() {
+                                coverImagePath = result.files.first.path;
+                              });
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: coverImagePath != null
+                                  ? AppColors.success.withOpacity(isDark ? 0.12 : 0.06)
+                                  : isDark
+                                      ? Colors.white.withOpacity(0.04)
+                                      : Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: coverImagePath != null
+                                    ? AppColors.success.withOpacity(0.4)
+                                    : isDark
+                                        ? Colors.white12
+                                        : Colors.grey.shade200,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  coverImagePath != null
+                                      ? Icons.image_rounded
+                                      : Icons.add_photo_alternate_outlined,
+                                  color: coverImagePath != null
+                                      ? AppColors.success
+                                      : isDark
+                                          ? Colors.white.withOpacity(0.4)
+                                          : Colors.grey.shade500,
+                                  size: 22,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        coverImagePath != null
+                                            ? 'تم اختيار صورة الغلاف'
+                                            : 'صورة الغلاف (اختياري)',
+                                        style: GoogleFonts.tajawal(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: coverImagePath != null
+                                              ? AppColors.success
+                                              : isDark
+                                                  ? Colors.white54
+                                                  : Colors.black45,
+                                        ),
+                                      ),
+                                      if (coverImagePath != null)
+                                        Text(
+                                          coverImagePath!.split('\\').last.split('/').last,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 11,
+                                            color: isDark ? Colors.white38 : Colors.black38,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                if (coverImagePath != null)
+                                  GestureDetector(
+                                    onTap: () => setSheetState(() => coverImagePath = null),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.error.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                        Icons.close_rounded,
+                                        size: 16,
+                                        color: AppColors.error,
+                                      ),
                                     ),
                                   ),
                               ],
                             ),
                           ),
-                          Icon(
-                            Icons.folder_open_rounded,
-                            color: Theme.of(
-                              context,
-                            ).textTheme.bodyMedium?.color,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 16),
-                // Cover Image picker (optional)
-                InkWell(
-                  onTap: () async {
-                    final result = await FilePicker.platform.pickFiles(
-                      type: FileType.image,
-                    );
-                    if (result != null && result.files.isNotEmpty) {
-                      setDialogState(() {
-                        coverImagePath = result.files.first.path;
-                      });
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: coverImagePath != null
-                          ? AppColors.success.withOpacity(0.1)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: coverImagePath != null
-                            ? AppColors.success.withOpacity(0.4)
-                            : AppColors.textSecondary.withOpacity(0.3),
-                        style: BorderStyle.solid,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          coverImagePath != null
-                              ? Icons.image_rounded
-                              : Icons.add_photo_alternate_outlined,
-                          color: coverImagePath != null
-                              ? AppColors.success
-                              : AppColors.textSecondary,
-                          size: 22,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+
+                        const SizedBox(height: 16),
+
+                        // ── Free Toggle ──
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.white.withOpacity(0.04)
+                                : Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isDark ? Colors.white12 : Colors.grey.shade200,
+                            ),
+                          ),
+                          child: Row(
                             children: [
-                              Text(
-                                coverImagePath != null
-                                    ? 'تم اختيار صورة الغلاف'
-                                    : 'صورة الغلاف (اختياري)',
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  color: coverImagePath != null
-                                      ? AppColors.success
-                                      : AppColors.textSecondary,
-                                  fontWeight: FontWeight.w500,
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: (isFree ? AppColors.success : AppColors.error)
+                                      .withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  isFree ? Icons.lock_open_rounded : Icons.lock_rounded,
+                                  color: isFree ? AppColors.success : AppColors.error,
+                                  size: 18,
                                 ),
                               ),
-                              if (coverImagePath != null)
-                                Text(
-                                  coverImagePath!.split('\\').last.split('/').last,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 11,
-                                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                              const SizedBox(width: 12),
+                              Text(
+                                'محتوى مجاني',
+                                style: GoogleFonts.tajawal(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white70 : Colors.black54,
                                 ),
+                              ),
+                              const Spacer(),
+                              Switch(
+                                value: isFree,
+                                onChanged: (value) {
+                                  setSheetState(() => isFree = value);
+                                },
+                                activeColor: AppColors.success,
+                              ),
                             ],
                           ),
                         ),
-                        if (coverImagePath != null)
-                          GestureDetector(
-                            onTap: () => setDialogState(() => coverImagePath = null),
-                            child: const Icon(
-                              Icons.close_rounded,
-                              size: 18,
-                              color: AppColors.error,
+
+                        const SizedBox(height: 24),
+
+                        // ── Action Buttons ──
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(sheetContext),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  side: BorderSide(
+                                    color: isDark ? Colors.white24 : Colors.grey.shade300,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                child: Text(
+                                  'إلغاء',
+                                  style: GoogleFonts.tajawal(
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? Colors.white54 : Colors.black45,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 2,
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  // Validation
+                                  if (titleController.text.trim().isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('يرجى إدخال عنوان المادة'),
+                                        backgroundColor: AppColors.error,
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  if (selectedType == 'Video' && urlController.text.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('يرجى إدخال رابط الفيديو'),
+                                        backgroundColor: AppColors.error,
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  if (selectedType != 'Video') {
+                                    if (selectedFile == null || selectedFile!.path == null) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('يرجى اختيار ملف صالح'),
+                                          backgroundColor: AppColors.error,
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                  }
+
+                                  Navigator.pop(sheetContext);
+
+                                  ApiResponse<int> response;
+
+                                  if (selectedType == 'Video') {
+                                    final request = MaterialRequest(
+                                      type: selectedType,
+                                      lectureId: lecture.id,
+                                      videoUrl: urlController.text.trim(),
+                                      title: titleController.text.trim(),
+                                      isFree: isFree,
+                                    );
+                                    response = await _teacherService.createMaterial(
+                                      request,
+                                      coverImagePath: coverImagePath,
+                                    );
+                                  } else {
+                                    response = await _teacherService.createMaterialWithFile(
+                                      type: selectedType,
+                                      lectureId: lecture.id,
+                                      filePath: selectedFile!.path!,
+                                      fileName: selectedFile!.name,
+                                      title: titleController.text.trim(),
+                                      isFree: isFree,
+                                      coverImagePath: coverImagePath,
+                                    );
+                                  }
+
+                                  if (response.succeeded && response.data != null) {
+                                    if (mounted) {
+                                      setState(() {
+                                        final newMaterial = CourseMaterial(
+                                          id: response.data!,
+                                          type: selectedType,
+                                          fileUrl: selectedType == 'Video'
+                                              ? urlController.text.trim()
+                                              : selectedFile!.path!,
+                                          isFree: isFree,
+                                          index: lecture.materials.length,
+                                          title: titleController.text.trim(),
+                                        );
+
+                                        final updatedMaterials = List<CourseMaterial>.from(
+                                          lecture.materials,
+                                        )..add(newMaterial);
+                                        updatedMaterials.sort((a, b) => a.index.compareTo(b.index));
+
+                                        _lectures[lectureIndex] = Lecture(
+                                          id: lecture.id,
+                                          title: lecture.title,
+                                          courseId: lecture.courseId,
+                                          materials: updatedMaterials,
+                                          isVisible: lecture.isVisible,
+                                          index: lecture.index,
+                                        );
+                                      });
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('تم إضافة ${_getMaterialLabel(selectedType)} بنجاح'),
+                                          backgroundColor: AppColors.success,
+                                        ),
+                                      );
+                                    }
+                                  } else {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(response.message),
+                                          backgroundColor: AppColors.error,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.success,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.add_rounded, size: 20),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'إضافة',
+                                      style: GoogleFonts.tajawal(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
                       ],
                     ),
                   ),
                 ),
-                // Is Free Toggle
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: AppColors.textSecondary.withOpacity(0.3),
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            isFree
-                                ? Icons.lock_open_rounded
-                                : Icons.lock_rounded,
-                            color: isFree ? AppColors.success : AppColors.error,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'محتوى مجاني',
-                            style: GoogleFonts.inter(
-                              color: Theme.of(
-                                context,
-                              ).textTheme.bodyLarge?.color,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Switch(
-                        value: isFree,
-                        onChanged: (value) {
-                          setDialogState(() {
-                            isFree = value;
-                          });
-                        },
-                        activeColor: AppColors.success,
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(
-                'إلغاء',
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyMedium?.color,
-                ),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                // Validation
-                if (titleController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('يرجى إدخال عنوان المادة'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
-                  return;
-                }
-                if (selectedType == 'Video' && urlController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('يرجى إدخال رابط الفيديو'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
-                  return;
-                }
-                if (selectedType != 'Video') {
-                  if (selectedFile == null || selectedFile!.path == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('يرجى اختيار ملف صالح'),
-                        backgroundColor: AppColors.error,
-                      ),
-                    );
-                    return;
-                  }
-                }
-
-                Navigator.pop(dialogContext);
-
-                ApiResponse<int> response;
-
-                if (selectedType == 'Video') {
-                  final request = MaterialRequest(
-                    type: selectedType,
-                    lectureId: lecture.id,
-                    videoUrl: urlController.text.trim(),
-                    title: titleController.text.trim(),
-                    isFree: isFree,
-                  );
-                  response = await _teacherService.createMaterial(
-                    request,
-                    coverImagePath: coverImagePath,
-                  );
-                } else {
-                  response = await _teacherService.createMaterialWithFile(
-                    type: selectedType,
-                    lectureId: lecture.id,
-                    filePath: selectedFile!.path!,
-                    fileName: selectedFile!.name,
-                    title: titleController.text.trim(),
-                    isFree: isFree,
-                    coverImagePath: coverImagePath,
-                  );
-                }
-
-                if (response.succeeded && response.data != null) {
-                  if (mounted) {
-                    setState(() {
-                      final newMaterial = CourseMaterial(
-                        id: response.data!,
-                        type: selectedType,
-                        fileUrl: selectedType == 'Video'
-                            ? urlController.text.trim()
-                            : selectedFile!.path!,
-                        isFree: isFree,
-                        index: lecture.materials.length,
-                        title: titleController.text.trim(),
-                      );
-
-                      final updatedMaterials = List<CourseMaterial>.from(
-                        lecture.materials,
-                      )..add(newMaterial);
-                      updatedMaterials.sort((a, b) => a.index.compareTo(b.index));
-
-                      _lectures[lectureIndex] = Lecture(
-                        id: lecture.id,
-                        title: lecture.title,
-                        courseId: lecture.courseId,
-                        materials: updatedMaterials,
-                        isVisible: lecture.isVisible,
-                        index: lecture.index,
-                      );
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('$selectedType Added Successfully'),
-                        backgroundColor: AppColors.success,
-                      ),
-                    );
-                  }
-                } else {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(response.message),
-                        backgroundColor: AppColors.error,
-                      ),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Add'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
+  }
+
+  String _getMaterialLabel(String type) {
+    switch (type) {
+      case 'Video': return 'فيديو';
+      case 'Pdf': return 'PDF';
+      case 'Image': return 'صورة';
+      case 'Homework': return 'واجب';
+      default: return type;
+    }
+  }
+
+  Color _getMaterialChipColor(String type) {
+    switch (type) {
+      case 'Video': return const Color(0xFFFF5252);
+      case 'Pdf': return const Color(0xFFE57373);
+      case 'Image': return Colors.blue;
+      case 'Homework': return Colors.orange;
+      default: return AppColors.primary;
+    }
   }
 
   Future<void> _showEditMaterialDialog(CourseMaterial material) async {

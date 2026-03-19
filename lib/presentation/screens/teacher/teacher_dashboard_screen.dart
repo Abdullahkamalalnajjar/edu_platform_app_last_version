@@ -509,281 +509,538 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
     int? selectedStageId;
     String? selectedImagePath;
     final picker = ImagePicker();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    Future<void> pickImage(StateSetter setState) async {
+    Future<void> pickImage(StateSetter setSheetState) async {
       final XFile? image = await picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
-        setState(() => selectedImagePath = image.path);
+        setSheetState(() => selectedImagePath = image.path);
       }
     }
 
-    await showDialog(
+    InputDecoration _fieldDecoration({
+      required String hint,
+      required IconData icon,
+      Color? iconColor,
+    }) {
+      return InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(
+          color: isDark ? Colors.white30 : Colors.black26,
+        ),
+        prefixIcon: Icon(icon, color: iconColor ?? AppColors.primary, size: 20),
+        filled: true,
+        fillColor: isDark
+            ? Colors.white.withOpacity(0.06)
+            : Colors.grey.shade50,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: isDark ? Colors.white12 : Colors.grey.shade200,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(
+            color: AppColors.primary,
+            width: 1.5,
+          ),
+        ),
+      );
+    }
+
+    Widget _label(String text) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(
+          text,
+          style: GoogleFonts.tajawal(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: isDark ? Colors.white70 : Colors.black54,
+          ),
+        ),
+      );
+    }
+
+    await showModalBottomSheet(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (sbContext, setState) {
-          return AlertDialog(
-            backgroundColor: Theme.of(context).cardColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sbContext, setSheetState) {
+          return Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.92,
             ),
-            title: Text(
-              'إضافة دورة جديدة',
-              style: GoogleFonts.outfit(
-                color: Theme.of(context).textTheme.titleLarge?.color,
-                fontWeight: FontWeight.bold,
-              ),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 20,
+                  offset: const Offset(0, -5),
+                ),
+              ],
             ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: titleController,
-                    decoration: InputDecoration(
-                      labelText: 'عنوان الدورة',
-                      labelStyle: TextStyle(
-                        color: Theme.of(context).textTheme.bodyMedium?.color,
-                      ),
-                    ),
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
-                    ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ── Handle bar ──
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  const SizedBox(height: 16),
+                ),
 
-                  TextField(
-                    controller: descriptionController,
-                    decoration: InputDecoration(
-                      labelText: 'الوصف (اختياري)',
-                      labelStyle: TextStyle(
-                        color: Theme.of(context).textTheme.bodyMedium?.color,
-                      ),
-                    ),
-                    maxLines: 3,
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Image Picker
-                  GestureDetector(
-                    onTap: () => pickImage(setState),
-                    child: Container(
-                      height: 150,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).scaffoldBackgroundColor,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Theme.of(context).dividerColor,
+                // ── Header ──
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFB71C1C), Color(0xFFE53935)],
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFE53935).withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
                         ),
-                        image: selectedImagePath != null
-                            ? DecorationImage(
-                                image: FileImage(File(selectedImagePath!)),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
+                        child: const Icon(Icons.school_rounded, color: Colors.white, size: 22),
                       ),
-                      child: selectedImagePath == null
-                          ? Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.add_photo_alternate_rounded,
-                                  color: Theme.of(
-                                    context,
-                                  ).textTheme.bodyMedium?.color,
-                                  size: 40,
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'تحميل صورة الدورة',
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'إضافة دورة جديدة',
+                              style: GoogleFonts.tajawal(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                            ),
+                            Text(
+                              'أنشئ دورة تعليمية لطلابك',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: isDark ? Colors.white54 : Colors.black45,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(sheetContext),
+                        icon: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white10 : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: isDark ? Colors.white60 : Colors.black54,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Divider(color: isDark ? Colors.white10 : Colors.grey.shade200),
+
+                // ── Content ──
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── Title ──
+                        _label('عنوان الدورة *'),
+                        TextField(
+                          controller: titleController,
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                          decoration: _fieldDecoration(
+                            hint: 'أدخل عنوان الدورة',
+                            icon: Icons.book_rounded,
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // ── Description ──
+                        _label('الوصف (اختياري)'),
+                        TextField(
+                          controller: descriptionController,
+                          maxLines: 3,
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                          decoration: _fieldDecoration(
+                            hint: 'أدخل وصف الدورة',
+                            icon: Icons.description_rounded,
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // ── Course Image ──
+                        _label('صورة الدورة (اختياري)'),
+                        GestureDetector(
+                          onTap: () => pickImage(setSheetState),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            height: selectedImagePath != null ? 160 : 100,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.04)
+                                  : Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: selectedImagePath != null
+                                    ? AppColors.success.withOpacity(0.5)
+                                    : isDark
+                                        ? Colors.white12
+                                        : Colors.grey.shade200,
+                                width: selectedImagePath != null ? 1.5 : 1,
+                              ),
+                              image: selectedImagePath != null
+                                  ? DecorationImage(
+                                      image: FileImage(File(selectedImagePath!)),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
+                            child: selectedImagePath == null
+                                ? Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.cloud_upload_rounded,
+                                        size: 32,
+                                        color: isDark ? Colors.white30 : Colors.grey.shade400,
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        'اضغط لاختيار صورة',
+                                        style: GoogleFonts.tajawal(
+                                          fontSize: 13,
+                                          color: isDark ? Colors.white54 : Colors.black45,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Align(
+                                    alignment: Alignment.topRight,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: GestureDetector(
+                                        onTap: () => setSheetState(() => selectedImagePath = null),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.error.withOpacity(0.9),
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: const Icon(
+                                            Icons.close_rounded,
+                                            size: 16,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // ── Education Stage ──
+                        _label('المرحلة الدراسية *'),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.white.withOpacity(0.06)
+                                : Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isDark ? Colors.white12 : Colors.grey.shade200,
+                            ),
+                          ),
+                          child: DropdownButtonFormField<int>(
+                            value: selectedStageId,
+                            dropdownColor: isDark ? const Color(0xFF2A2A3E) : Colors.white,
+                            decoration: InputDecoration(
+                              prefixIcon: Icon(
+                                Icons.school_outlined,
+                                color: AppColors.primary,
+                                size: 20,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            ),
+                            hint: Text(
+                              'اختر المرحلة',
+                              style: TextStyle(
+                                color: isDark ? Colors.white30 : Colors.black26,
+                              ),
+                            ),
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                            items: _educationStages.map((stage) {
+                              return DropdownMenuItem<int>(
+                                value: stage['id'],
+                                child: Text(
+                                  stage['name'] ?? '',
                                   style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).textTheme.bodyMedium?.color,
+                                    color: isDark ? Colors.white : Colors.black87,
                                   ),
                                 ),
-                              ],
-                            )
-                          : null,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<int>(
-                    value: selectedStageId,
-                    dropdownColor: Theme.of(context).cardColor,
-                    decoration: InputDecoration(
-                      labelText: 'المرحلة الدراسية',
-                      labelStyle: TextStyle(
-                        color: Theme.of(context).textTheme.bodyMedium?.color,
-                      ),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Theme.of(context).dividerColor,
-                        ),
-                      ),
-                    ),
-                    style: GoogleFonts.inter(
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
-                    ),
-                    items: _educationStages.map((stage) {
-                      return DropdownMenuItem<int>(
-                        value: stage['id'],
-                        child: Text(
-                          stage['name'] ?? '',
-                          style: TextStyle(
-                            color: Theme.of(context).textTheme.bodyLarge?.color,
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setSheetState(() => selectedStageId = value);
+                            },
                           ),
                         ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() => selectedStageId = value);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: gradeYearController,
-                    decoration: InputDecoration(
-                      labelText: 'السنة الدراسية',
-                      labelStyle: TextStyle(
-                        color: Theme.of(context).textTheme.bodyMedium?.color,
-                      ),
-                    ),
-                    keyboardType: TextInputType.number,
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
-                    ),
-                  ),
-                  if (AppConstants.data) ...[
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: priceController,
-                      decoration: InputDecoration(
-                        labelText: 'السعر',
-                        labelStyle: TextStyle(
-                          color: Theme.of(context).textTheme.bodyMedium?.color,
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                      style: TextStyle(
-                        color: Theme.of(context).textTheme.bodyLarge?.color,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: discountedPriceController,
-                      decoration: InputDecoration(
-                        labelText: 'السعر المخفض',
-                        labelStyle: TextStyle(
-                          color: Theme.of(context).textTheme.bodyMedium?.color,
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                      style: TextStyle(
-                        color: Theme.of(context).textTheme.bodyLarge?.color,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('إلغاء'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (titleController.text.isNotEmpty &&
-                      gradeYearController.text.isNotEmpty &&
-                      selectedStageId != null) {
-                    Navigator.pop(dialogContext);
 
-                    // Use widget.teacherId if available (admin view), otherwise use effective teacher ID
-                    int? teacherId = widget.teacherId;
+                        const SizedBox(height: 16),
 
-                    if (teacherId == null) {
-                      teacherId = await _tokenService.getTeacherId();
-
-                      // If still null or 0, try to recover it
-                      if (teacherId == null || teacherId == 0) {
-                        final userGuid = await _tokenService.getUserGuid();
-                        if (userGuid != null) {
-                          final profileResponse =
-                              await _teacherService.getProfileByGuid(userGuid);
-                          if (profileResponse.succeeded &&
-                              profileResponse.data != null) {
-                            teacherId = profileResponse.data!['teacherId'];
-                            if (teacherId != null) {
-                              await _tokenService.saveTeacherId(teacherId);
-                            }
-                          }
-                        }
-                      }
-                    }
-
-                    final request = CourseRequest(
-                      title: titleController.text,
-                      description: descriptionController.text.isNotEmpty
-                          ? descriptionController.text
-                          : null,
-                      gradeYear: int.parse(
-                        _convertArabicToEnglishNumbers(
-                          gradeYearController.text,
-                        ),
-                      ),
-                      teacherId: teacherId ?? 0,
-                      educationStageId: selectedStageId!,
-                      price: double.parse(
-                        _convertArabicToEnglishNumbers(priceController.text),
-                      ),
-                      discountedPrice: double.parse(
-                        _convertArabicToEnglishNumbers(
-                          discountedPriceController.text,
-                        ),
-                      ),
-                      imagePath: selectedImagePath,
-                    );
-
-                    final response = await _teacherService.createCourse(
-                      request,
-                    );
-                    if (!mounted) return;
-
-                    if (mounted && context.mounted) {
-                      if (response.succeeded) {
-                        // Ensure backend has processed the addition before fetching
-                        await Future.delayed(const Duration(milliseconds: 300));
-                        await _fetchCourses();
-
-                        if (!mounted) return;
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('تم إضافة الدورة بنجاح'),
+                        // ── Grade Year ──
+                        _label('السنة الدراسية *'),
+                        TextField(
+                          controller: gradeYearController,
+                          keyboardType: TextInputType.number,
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                          decoration: _fieldDecoration(
+                            hint: 'أدخل السنة الدراسية',
+                            icon: Icons.calendar_today_rounded,
                           ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(response.message),
-                            backgroundColor: AppColors.error,
+                        ),
+
+                        if (AppConstants.data) ...[
+                          const SizedBox(height: 16),
+
+                          // ── Prices ──
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _label('السعر'),
+                                    TextField(
+                                      controller: priceController,
+                                      keyboardType: TextInputType.number,
+                                      style: TextStyle(
+                                        color: isDark ? Colors.white : Colors.black87,
+                                      ),
+                                      decoration: _fieldDecoration(
+                                        hint: '0.0',
+                                        icon: Icons.attach_money_rounded,
+                                        iconColor: AppColors.success,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _label('السعر المخفض'),
+                                    TextField(
+                                      controller: discountedPriceController,
+                                      keyboardType: TextInputType.number,
+                                      style: TextStyle(
+                                        color: isDark ? Colors.white : Colors.black87,
+                                      ),
+                                      decoration: _fieldDecoration(
+                                        hint: '0.0',
+                                        icon: Icons.local_offer_rounded,
+                                        iconColor: Colors.orange,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                        );
-                      }
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
+                        ],
+
+                        const SizedBox(height: 24),
+
+                        // ── Action Buttons ──
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(sheetContext),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  side: BorderSide(
+                                    color: isDark ? Colors.white24 : Colors.grey.shade300,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                child: Text(
+                                  'إلغاء',
+                                  style: GoogleFonts.tajawal(
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? Colors.white54 : Colors.black45,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 2,
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  if (titleController.text.isNotEmpty &&
+                                      gradeYearController.text.isNotEmpty &&
+                                      selectedStageId != null) {
+                                    Navigator.pop(sheetContext);
+
+                                    int? teacherId = widget.teacherId;
+
+                                    if (teacherId == null) {
+                                      teacherId = await _tokenService.getTeacherId();
+
+                                      if (teacherId == null || teacherId == 0) {
+                                        final userGuid = await _tokenService.getUserGuid();
+                                        if (userGuid != null) {
+                                          final profileResponse =
+                                              await _teacherService.getProfileByGuid(userGuid);
+                                          if (profileResponse.succeeded &&
+                                              profileResponse.data != null) {
+                                            teacherId = profileResponse.data!['teacherId'];
+                                            if (teacherId != null) {
+                                              await _tokenService.saveTeacherId(teacherId);
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+
+                                    final request = CourseRequest(
+                                      title: titleController.text,
+                                      description: descriptionController.text.isNotEmpty
+                                          ? descriptionController.text
+                                          : null,
+                                      gradeYear: int.parse(
+                                        _convertArabicToEnglishNumbers(
+                                          gradeYearController.text,
+                                        ),
+                                      ),
+                                      teacherId: teacherId ?? 0,
+                                      educationStageId: selectedStageId!,
+                                      price: double.parse(
+                                        _convertArabicToEnglishNumbers(priceController.text),
+                                      ),
+                                      discountedPrice: double.parse(
+                                        _convertArabicToEnglishNumbers(
+                                          discountedPriceController.text,
+                                        ),
+                                      ),
+                                      imagePath: selectedImagePath,
+                                    );
+
+                                    final response = await _teacherService.createCourse(
+                                      request,
+                                    );
+                                    if (!mounted) return;
+
+                                    if (mounted && context.mounted) {
+                                      if (response.succeeded) {
+                                        await Future.delayed(const Duration(milliseconds: 300));
+                                        await _fetchCourses();
+
+                                        if (!mounted) return;
+
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('تم إضافة الدورة بنجاح'),
+                                            backgroundColor: AppColors.success,
+                                          ),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(response.message),
+                                            backgroundColor: AppColors.error,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('يرجى ملء جميع الحقول المطلوبة'),
+                                        backgroundColor: AppColors.error,
+                                      ),
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.add_rounded, size: 20),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'إضافة دورة',
+                                      style: GoogleFonts.tajawal(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
                 ),
-                child: const Text('إضافة'),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),
