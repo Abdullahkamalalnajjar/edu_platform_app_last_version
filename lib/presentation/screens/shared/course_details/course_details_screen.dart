@@ -368,8 +368,10 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
 
   Widget _buildSliverAppBar(bool innerBoxIsScrolled) {
     final size = MediaQuery.of(context).size;
+    final hasImage = widget.course.courseImageUrl != null &&
+        widget.course.courseImageUrl!.isNotEmpty;
     final double headerHeight =
-        size.width > 700 ? math.min(size.height * 0.28, 300.0) : 180.0;
+        size.width > 700 ? math.min(size.height * 0.35, 350.0) : 280.0;
 
     return SliverAppBar(
       expandedHeight: headerHeight,
@@ -420,173 +422,144 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                 ),
               )
             : null,
-        background: Stack(
-          fit: StackFit.expand,
+        background: Column(
           children: [
-            // Background Image
-            if (widget.course.courseImageUrl != null &&
-                widget.course.courseImageUrl!.isNotEmpty)
-              Positioned.fill(
-                child: Image.network(
-                  widget.course.courseImageUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const SizedBox(),
-                ),
-              ),
-
-            // Gradient Background/Overlay
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: (widget.course.courseImageUrl != null &&
-                          widget.course.courseImageUrl!.isNotEmpty)
-                      ? [
-                          Colors.black.withOpacity(0.3),
-                          Theme.of(
-                            context,
-                          ).scaffoldBackgroundColor.withOpacity(0.8),
-                          Theme.of(context).scaffoldBackgroundColor,
-                        ]
-                      : [
-                          Theme.of(context).primaryColor.withOpacity(0.15),
-                          Theme.of(
-                            context,
-                          ).scaffoldBackgroundColor.withOpacity(0.8),
-                          Theme.of(context).scaffoldBackgroundColor,
-                        ],
-                ),
-              ),
-            ),
-
-            // Decorative Big Circle
-            Positioned(
-              top: -50,
-              right: -50,
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Theme.of(context).primaryColor.withOpacity(0.05),
-                ),
-              ),
-            ),
-
-            // Large Title in Background
-            Positioned(
-              bottom: 30,
-              left: 24,
-              right: 24,
-              child: FadeInUp(
-                duration: const Duration(milliseconds: 800),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            // ── Course Image (top, clean) ──────────────────
+            if (hasImage)
+              Expanded(
+                flex: 3,
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    if (widget.course.gradeYear > 0 ||
-                        widget.course.educationStageName != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
+                    Image.network(
+                      widget.course.courseImageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (ctx, err, st) =>
+                          Container(color: Theme.of(context).cardColor),
+                    ),
+                    Positioned(
+                      bottom: 0, left: 0, right: 0, height: 40,
+                      child: Container(
                         decoration: BoxDecoration(
-                          color: Theme.of(context).cardColor.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: Theme.of(
-                              context,
-                            ).primaryColor.withOpacity(0.3),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Theme.of(context).scaffoldBackgroundColor,
+                            ],
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 4,
-                            ),
-                          ],
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.school_rounded,
-                              size: 14,
-                              color: Theme.of(context).primaryColor,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              widget.course.educationStageName ??
-                                  'Grade ${widget.course.gradeYear}',
-                              style: GoogleFonts.inter(
-                                color: Theme.of(context).primaryColor,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    if (widget.course.gradeYear > 0 ||
-                        widget.course.educationStageName != null)
-                      const SizedBox(height: 12),
-                    Text(
-                      widget.course.title,
-                      style: GoogleFonts.outfit(
-                        fontSize: 24, // Reduced from 32
-                        fontWeight: FontWeight.w800,
-                        color: Theme.of(context).textTheme.displaySmall?.color,
-                        height: 1.1,
-                        shadows: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
                       ),
                     ),
-                    // Price Display
-                    if (AppConstants.data && widget.course.price > 0) ...[
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          if (widget.course.discountedPrice > 0 &&
-                              widget.course.discountedPrice <
-                                  widget.course.price) ...[
-                            Text(
-                              '${widget.course.discountedPrice.toStringAsFixed(0)} ج.م',
-                              style: GoogleFonts.outfit(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.success,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${widget.course.price.toStringAsFixed(0)} ج.م',
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                color: Theme.of(
-                                  context,
-                                ).textTheme.bodyMedium?.color,
-                                decoration: TextDecoration.lineThrough,
-                              ),
-                            ),
-                          ] else
-                            Text(
-                              '${widget.course.price.toStringAsFixed(0)} ج.م',
-                              style: GoogleFonts.outfit(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).primaryColor,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
                   ],
+                ),
+              )
+            else
+              Expanded(
+                flex: 3,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Theme.of(context).primaryColor.withOpacity(0.15),
+                        Theme.of(context).scaffoldBackgroundColor,
+                      ],
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(Icons.school_rounded, size: 48,
+                      color: Theme.of(context).primaryColor.withOpacity(0.3)),
+                  ),
+                ),
+              ),
+            // ── Course Info (below image) ──────────────────
+            Expanded(
+              flex: 2,
+              child: Container(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                padding: const EdgeInsets.fromLTRB(24, 4, 24, 4),
+                child: FadeInUp(
+                  duration: const Duration(milliseconds: 800),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (widget.course.gradeYear > 0 ||
+                          widget.course.educationStageName != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          margin: const EdgeInsets.only(bottom: 6),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).primaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Theme.of(context).primaryColor.withOpacity(0.2),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.school_rounded, size: 13,
+                                color: Theme.of(context).primaryColor),
+                              const SizedBox(width: 5),
+                              Text(
+                                widget.course.educationStageName ??
+                                    'Grade ${widget.course.gradeYear}',
+                                style: GoogleFonts.inter(
+                                  color: Theme.of(context).primaryColor,
+                                  fontSize: 12, fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      Text(
+                        widget.course.title,
+                        style: GoogleFonts.tajawal(
+                          fontSize: 22, fontWeight: FontWeight.w800,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                          height: 1.2,
+                        ),
+                        maxLines: 2, overflow: TextOverflow.ellipsis,
+                      ),
+                      if (AppConstants.data && widget.course.price > 0) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            if (widget.course.discountedPrice > 0 &&
+                                widget.course.discountedPrice < widget.course.price) ...[
+                              Text(
+                                '${widget.course.discountedPrice.toStringAsFixed(0)} ج.م',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 18, fontWeight: FontWeight.bold,
+                                  color: AppColors.success,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${widget.course.price.toStringAsFixed(0)} ج.م',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                            ] else
+                              Text(
+                                '${widget.course.price.toStringAsFixed(0)} ج.م',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 18, fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).primaryColor,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
             ),
