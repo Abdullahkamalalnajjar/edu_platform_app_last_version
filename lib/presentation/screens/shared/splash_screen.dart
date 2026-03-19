@@ -173,6 +173,9 @@ class _SplashScreenState extends State<SplashScreen>
     final Widget nextScreen = results[1] as Widget;
 
     if (mounted) {
+      // Always replace splash with the main screen.
+      // If a notification already navigated, the notification screen
+      // sits on top — pressing back will land on this main screen.
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => nextScreen,

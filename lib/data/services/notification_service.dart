@@ -141,37 +141,13 @@ class NotificationService {
     if (initialMessage != null) {
       print('🚀 App launched from terminated state via notification!');
       print('🚀 Data: ${initialMessage.data}');
-      // Store the data for later processing when navigator is ready
+      // Store the data — will be processed by processPendingNotification()
+      // which is called from MainScreen/TeacherDashboard after they load
       _pendingNotificationData = Map<String, dynamic>.from(initialMessage.data);
-      // Also try with a retry mechanism
-      _retryHandleInitialMessage(initialMessage.data);
     }
 
     _isInitialized = true;
     print('🔔 NotificationService initialized');
-  }
-
-  /// Retry handling the initial message until navigator is available
-  static void _retryHandleInitialMessage(
-    Map<String, dynamic> data, {
-    int attempt = 0,
-  }) {
-    if (attempt > 20) {
-      print('❌ Gave up waiting for navigator after 20 attempts');
-      return;
-    }
-
-    Future.delayed(Duration(milliseconds: 1000 + (attempt * 500)), () {
-      final navigator = navigatorKey.currentState;
-      if (navigator != null) {
-        print('✅ Navigator ready on attempt $attempt — processing notification');
-        _pendingNotificationData = null; // Clear pending
-        _handleNotificationData(data);
-      } else {
-        print('⏳ Navigator not ready, retry attempt ${attempt + 1}...');
-        _retryHandleInitialMessage(data, attempt: attempt + 1);
-      }
-    });
   }
 
   /// Call this from MainScreen/TeacherDashboard after they are fully loaded
@@ -181,8 +157,8 @@ class NotificationService {
       print('📬 Processing pending notification from terminated state');
       final data = Map<String, dynamic>.from(_pendingNotificationData!);
       _pendingNotificationData = null;
-      // Small delay to let the screen fully render
-      Future.delayed(const Duration(milliseconds: 500), () {
+      // Delay to let the main screen fully render before navigating
+      Future.delayed(const Duration(milliseconds: 1500), () {
         _handleNotificationData(data);
       });
     }
