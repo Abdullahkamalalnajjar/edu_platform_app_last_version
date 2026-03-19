@@ -74,7 +74,7 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: const Color(0xFF0A0A0A),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -137,7 +137,6 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
         physics: const BouncingScrollPhysics(),
         slivers: [
           SliverToBoxAdapter(child: _buildHeader()),
-
           if (filteredTeachers.isEmpty && _searchQuery.isNotEmpty)
             SliverFillRemaining(
               hasScrollBody: false,
@@ -166,7 +165,7 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
               sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
-                  childAspectRatio: 0.7,
+                  childAspectRatio: 0.65,
                   crossAxisSpacing: 8,
                   mainAxisSpacing: 8,
                 ),
@@ -180,7 +179,6 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
                 }, childCount: filteredTeachers.length),
               ),
             ),
-
           const SliverToBoxAdapter(child: SizedBox(height: 40)),
         ],
       ),
@@ -323,8 +321,8 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
           children: [
             // Square Avatar without border
             Container(
-              width: 85,
-              height: 85,
+              width: 75,
+              height: 75,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(22),
                 color: Theme.of(context).cardColor,
@@ -342,8 +340,8 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
                     ? Image.network(
                         photoUrl,
                         fit: BoxFit.cover,
-                        width: 85,
-                        height: 85,
+                        width: 75,
+                        height: 75,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
                             color: AppColors.background,
@@ -375,7 +373,7 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
             Text(
               teacherName,
               textAlign: TextAlign.center,
-              maxLines: 2,
+              maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.outfit(
                 fontSize: 11,
@@ -460,10 +458,10 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).scaffoldBackgroundColor,
-                Theme.of(context).cardColor,
-                Theme.of(context).scaffoldBackgroundColor,
+              colors: const [
+                Color(0xFF0A0A0A),
+                Color(0xFF1A0A0A),
+                Color(0xFF0A0A0A),
               ],
               stops: [
                 0.0,
@@ -480,15 +478,47 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
   Widget _buildDecorativeOrbs(Size size) {
     return Stack(
       children: [
+        // Top-right red glow
         Positioned(
-          top: -size.height * 0.1,
-          right: -size.width * 0.2,
+          top: -size.height * 0.08,
+          right: -size.width * 0.15,
           child: AnimatedBuilder(
             animation: _backgroundController,
             builder: (context, child) {
               return Transform.translate(
                 offset: Offset(
-                  20 * math.sin(_backgroundController.value * 2 * math.pi),
+                  15 * math.sin(_backgroundController.value * 2 * math.pi),
+                  15 * math.cos(_backgroundController.value * 2 * math.pi),
+                ),
+                child: Container(
+                  width: size.width * 0.5,
+                  height: size.width * 0.5,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        AppColors.primary.withOpacity(0.2),
+                        AppColors.primaryDark.withOpacity(0.05),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.0, 0.5, 1.0],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        // Bottom-left dark red glow
+        Positioned(
+          bottom: -size.height * 0.12,
+          left: -size.width * 0.2,
+          child: AnimatedBuilder(
+            animation: _backgroundController,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(
+                  -20 * math.sin(_backgroundController.value * 2 * math.pi),
                   20 * math.cos(_backgroundController.value * 2 * math.pi),
                 ),
                 child: Container(
@@ -498,9 +528,11 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.meshGold.withOpacity(0.15),
+                        AppColors.primaryDark.withOpacity(0.15),
+                        AppColors.primary.withOpacity(0.04),
                         Colors.transparent,
                       ],
+                      stops: const [0.0, 0.4, 1.0],
                     ),
                   ),
                 ),

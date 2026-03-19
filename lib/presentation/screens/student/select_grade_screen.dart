@@ -26,6 +26,18 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
   late AnimationController _backgroundController;
   List<Map<String, dynamic>> _stages = [];
 
+  // Grade icons for visual variety
+  static const List<IconData> _gradeIcons = [
+    Icons.menu_book_rounded,
+    Icons.auto_stories_rounded,
+    Icons.school_rounded,
+    Icons.workspace_premium_rounded,
+    Icons.military_tech_rounded,
+    Icons.emoji_events_rounded,
+    Icons.star_rounded,
+    Icons.psychology_rounded,
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -72,7 +84,7 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: const Color(0xFF0A0A0A),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -93,13 +105,15 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
             onPressed: () => Navigator.pop(context),
           ),
         ),
+        titleSpacing: 0,
         title: Text(
           widget.teacherName,
           style: GoogleFonts.outfit(
             color: Theme.of(context).textTheme.bodyLarge?.color,
             fontWeight: FontWeight.w600,
-            fontSize: 18,
+            fontSize: 16,
           ),
+          overflow: TextOverflow.visible,
         ),
         centerTitle: true,
       ),
@@ -132,148 +146,334 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
   }
 
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 10, 24, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'اختر',
-            style: GoogleFonts.inter(
-              fontSize: 16,
-              color: Theme.of(context).textTheme.bodyMedium?.color,
-              letterSpacing: 1,
+    return FadeInDown(
+      duration: const Duration(milliseconds: 600),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 10, 24, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon + Title in same row
+            Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primary.withOpacity(0.2),
+                        AppColors.primaryDark.withOpacity(0.1),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.primary.withOpacity(0.3),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.school_rounded,
+                    color: AppColors.primary,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Text(
+                  'اختر الصف الدراسي',
+                  style: GoogleFonts.outfit(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    height: 1.1,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
             ),
-          ),
-          Text(
-            'الصف الدراسي',
-            style: GoogleFonts.outfit(
-              fontSize: 32,
-              fontWeight: FontWeight.w700,
-              color: Theme.of(context).textTheme.displaySmall?.color,
-              height: 1.1,
+            const SizedBox(height: 10),
+            Text(
+              'اختر المرحلة الدراسية اللي عايز تشوف دوراتها',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: Colors.white38,
+                height: 1.4,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            width: 60,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(2),
+            const SizedBox(height: 16),
+            // Gradient divider
+            Container(
+              height: 2,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primary,
+                    AppColors.primary.withOpacity(0.0),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(1),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildStagesList() {
     final stages = _getFilteredStages();
+    final isGrid = stages.length >= 4;
+
+    if (isGrid) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: GridView.builder(
+          physics: const BouncingScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            childAspectRatio: 1.0,
+          ),
+          itemCount: stages.length,
+          itemBuilder: (context, index) {
+            final stage = stages[index];
+            return FadeInUp(
+              duration: const Duration(milliseconds: 500),
+              delay: Duration(milliseconds: 80 * index),
+              child: _buildStageCardGrid(stage, index),
+            );
+          },
+        ),
+      );
+    }
+
     return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       physics: const BouncingScrollPhysics(),
       itemCount: stages.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 16),
+      separatorBuilder: (context, index) => const SizedBox(height: 14),
       itemBuilder: (context, index) {
         final stage = stages[index];
         return FadeInUp(
           duration: const Duration(milliseconds: 500),
           delay: Duration(milliseconds: 100 * index),
-          child: _buildStageCard(stage, index),
+          child: _buildStageCardList(stage, index),
         );
       },
     );
   }
 
-  Widget _buildStageCard(Map<String, dynamic> stage, int index) {
+  // Grid card for 4+ stages
+  Widget _buildStageCardGrid(Map<String, dynamic> stage, int index) {
     final stageName = stage['educationStageName'] ?? 'مرحلة غير معروفة';
-    // Alternate colors for variety
-    final color =
-        AppColors.subjectColors[index % AppColors.subjectColors.length][0];
+    final colors = AppColors.subjectColors[index % AppColors.subjectColors.length];
+    final icon = _gradeIcons[index % _gradeIcons.length];
 
     return GestureDetector(
       onTap: () => _onStageSelected(stage['id']),
       child: Container(
-        height: 70, // Fixed height for consistent oval shape
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(100), // Oval/Stadium shape
+          borderRadius: BorderRadius.circular(24),
           gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [
-              Theme.of(context).cardColor,
-              Theme.of(context).cardColor.withOpacity(0.8),
+              colors[0].withOpacity(0.15),
+              colors[1].withOpacity(0.08),
             ],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
           ),
-          border: Border.all(color: AppColors.glassBorder.withOpacity(0.5)),
+          border: Border.all(
+            color: colors[0].withOpacity(0.2),
+            width: 1.5,
+          ),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: colors[0].withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: Stack(
-          alignment: Alignment.center,
           children: [
-            // Decorative accent (subtle glow on side)
+            // Background decorative circle
             Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
+              top: -20,
+              right: -20,
               child: Container(
-                width: 70,
+                width: 80,
+                height: 80,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: color.withOpacity(0.05),
+                  color: colors[0].withOpacity(0.08),
                 ),
               ),
             ),
-
+            // Content
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  // Icon container
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.school_rounded, color: color, size: 20),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      stageName,
-                      style: GoogleFonts.outfit(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                      gradient: LinearGradient(
+                        colors: [colors[0], colors[1]],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      textAlign: TextAlign.center, // Center text in the oval
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colors[0].withOpacity(0.35),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
+                    child: Icon(icon, color: Colors.white, size: 22),
                   ),
-                  // Balance the icon on the other side for perfect centering
-                  const SizedBox(width: 36),
+                  // Name & arrow
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        stageName,
+                        style: GoogleFonts.outfit(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          height: 1.2,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Text(
+                            'عرض الدورات',
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              color: colors[0].withOpacity(0.8),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_back_ios_rounded,
+                            size: 9,
+                            color: colors[0].withOpacity(0.8),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
 
-            // Arrow indicator on right (or left for RTL)
-            Positioned(
-              left: 20,
-              child: Icon(
-                Icons
-                    .arrow_back_ios_rounded, // Points left in RTL (which is forward)
-                color: AppColors.textSecondary.withOpacity(0.5),
-                size: 16,
+  // List card for fewer stages
+  Widget _buildStageCardList(Map<String, dynamic> stage, int index) {
+    final stageName = stage['educationStageName'] ?? 'مرحلة غير معروفة';
+    final colors = AppColors.subjectColors[index % AppColors.subjectColors.length];
+    final icon = _gradeIcons[index % _gradeIcons.length];
+
+    return GestureDetector(
+      onTap: () => _onStageSelected(stage['id']),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          gradient: LinearGradient(
+            begin: Alignment.centerRight,
+            end: Alignment.centerLeft,
+            colors: [
+              colors[0].withOpacity(0.12),
+              colors[1].withOpacity(0.05),
+            ],
+          ),
+          border: Border.all(
+            color: colors[0].withOpacity(0.18),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: colors[0].withOpacity(0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Arrow (RTL = arrow is on the right visually, left logically)
+            Icon(
+              Icons.arrow_back_ios_rounded,
+              size: 16,
+              color: Colors.white24,
+            ),
+            const SizedBox(width: 12),
+            // Stage name
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    stageName,
+                    style: GoogleFonts.outfit(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'اضغط لعرض الدورات المتاحة',
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: Colors.white30,
+                    ),
+                    textAlign: TextAlign.right,
+                  ),
+                ],
               ),
+            ),
+            const SizedBox(width: 16),
+            // Icon container
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [colors[0], colors[1]],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: colors[0].withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(icon, color: Colors.white, size: 24),
             ),
           ],
         ),
@@ -283,20 +483,37 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.school_outlined,
-            size: 64,
-            color: AppColors.textSecondary.withOpacity(0.5),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            "لا توجد مراحل دراسية متاحة",
-            style: GoogleFonts.inter(color: AppColors.textSecondary),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withOpacity(0.08)),
+              ),
+              child: Icon(
+                Icons.school_outlined,
+                size: 36,
+                color: Colors.white.withOpacity(0.25),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'لا توجد مراحل دراسية متاحة',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.white54,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -311,9 +528,9 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Theme.of(context).scaffoldBackgroundColor,
-                Theme.of(context).cardColor,
-                Theme.of(context).scaffoldBackgroundColor,
+                const Color(0xFF0A0A0A),
+                const Color(0xFF1A0A0A),
+                const Color(0xFF0A0A0A),
               ],
               stops: [
                 0.0,
@@ -330,8 +547,40 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
   Widget _buildDecorativeOrbs(Size size) {
     return Stack(
       children: [
+        // Top-right glow
         Positioned(
-          bottom: -size.height * 0.1,
+          top: -size.height * 0.08,
+          right: -size.width * 0.15,
+          child: AnimatedBuilder(
+            animation: _backgroundController,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(
+                  15 * math.sin(_backgroundController.value * 2 * math.pi),
+                  15 * math.cos(_backgroundController.value * 2 * math.pi),
+                ),
+                child: Container(
+                  width: size.width * 0.5,
+                  height: size.width * 0.5,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        AppColors.primary.withOpacity(0.2),
+                        AppColors.primaryDark.withOpacity(0.05),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.0, 0.5, 1.0],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        // Bottom-left glow
+        Positioned(
+          bottom: -size.height * 0.12,
           left: -size.width * 0.2,
           child: AnimatedBuilder(
             animation: _backgroundController,
@@ -348,9 +597,11 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.primary.withOpacity(0.1),
+                        AppColors.primaryDark.withOpacity(0.15),
+                        AppColors.primary.withOpacity(0.04),
                         Colors.transparent,
                       ],
+                      stops: const [0.0, 0.4, 1.0],
                     ),
                   ),
                 ),

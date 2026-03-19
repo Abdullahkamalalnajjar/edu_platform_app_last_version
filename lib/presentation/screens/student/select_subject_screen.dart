@@ -78,7 +78,7 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: const Color(0xFF0A0A0A),
       body: Stack(
         children: [
           _buildAnimatedBackground(size),
@@ -106,10 +106,10 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).scaffoldBackgroundColor,
-                Theme.of(context).cardColor,
-                Theme.of(context).scaffoldBackgroundColor,
+              colors: const [
+                Color(0xFF0A0A0A),
+                Color(0xFF1A0A0A),
+                Color(0xFF0A0A0A),
               ],
               stops: [
                 0.0,
@@ -126,15 +126,47 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
   Widget _buildDecorativeOrbs(Size size) {
     return Stack(
       children: [
+        // Top-right red glow
         Positioned(
-          top: -size.height * 0.1,
-          right: -size.width * 0.2,
+          top: -size.height * 0.08,
+          right: -size.width * 0.15,
           child: AnimatedBuilder(
             animation: _backgroundController,
             builder: (context, child) {
               return Transform.translate(
                 offset: Offset(
-                  20 * math.sin(_backgroundController.value * 2 * math.pi),
+                  15 * math.sin(_backgroundController.value * 2 * math.pi),
+                  15 * math.cos(_backgroundController.value * 2 * math.pi),
+                ),
+                child: Container(
+                  width: size.width * 0.5,
+                  height: size.width * 0.5,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        AppColors.primary.withOpacity(0.2),
+                        AppColors.primaryDark.withOpacity(0.05),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.0, 0.5, 1.0],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        // Bottom-left dark red glow
+        Positioned(
+          bottom: -size.height * 0.12,
+          left: -size.width * 0.2,
+          child: AnimatedBuilder(
+            animation: _backgroundController,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(
+                  -20 * math.sin(_backgroundController.value * 2 * math.pi),
                   20 * math.cos(_backgroundController.value * 2 * math.pi),
                 ),
                 child: Container(
@@ -144,9 +176,11 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.meshBlue.withOpacity(0.15),
+                        AppColors.primaryDark.withOpacity(0.15),
+                        AppColors.primary.withOpacity(0.04),
                         Colors.transparent,
                       ],
+                      stops: const [0.0, 0.4, 1.0],
                     ),
                   ),
                 ),
@@ -274,54 +308,53 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
+                  Expanded(
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
                           Image.asset(
                             'assets/images/logo_icon.png',
-                            width: 24,
-                            height: 24,
+                            width: 28,
+                            height: 28,
                             fit: BoxFit.contain,
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'منصة بوصلة - Bosla',
-                            style: GoogleFonts.outfit(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
-                              letterSpacing: 1.5,
+                          const SizedBox(width: 10),
+                          Flexible(
+                            child: ShaderMask(
+                              shaderCallback: (bounds) {
+                                return const LinearGradient(
+                                  colors: [
+                                    Colors.white,
+                                    AppColors.primary,
+                                    Colors.white,
+                                  ],
+                                  stops: [0.0, 0.5, 1.0],
+                                ).createShader(bounds);
+                              },
+                              child: Text(
+                                'منصة بوصلة - Bosla',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.tajawal(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'تصفح',
-                        style: GoogleFonts.inter(
-                          fontSize: 16,
-                          color: Theme.of(context).textTheme.bodyMedium?.color,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                      Text(
-                        'المواد',
-                        style: GoogleFonts.outfit(
-                          fontSize: 36,
-                          fontWeight: FontWeight.w700,
-                          color:
-                              Theme.of(context).textTheme.displayMedium?.color,
-                          height: 1.1,
-                        ),
-                      ),
                     ],
+                   ),
                   ),
                   Row(
                     children: [
                       // Notifications Button
-                      InkWell(
+                      GestureDetector(
                         onTap: () {
                           Navigator.push(
                             context,
@@ -330,77 +363,74 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
                             ),
                           ).then((_) => _fetchUnreadCount());
                         },
-                        borderRadius: BorderRadius.circular(16),
                         child: Stack(
                           clipBehavior: Clip.none,
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(11),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).cardColor,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Theme.of(context).dividerColor,
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppColors.primary.withOpacity(0.15),
+                                    AppColors.primaryDark.withOpacity(0.08),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: AppColors.primary.withOpacity(0.25),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withOpacity(0.1),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
                               ),
-                              child: Icon(
+                              child: const Icon(
                                 Icons.notifications_rounded,
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white
-                                    : Theme.of(context).primaryColor,
-                                size: 24,
+                                color: Color(0xFFFFD700),
+                                size: 22,
                               ),
                             ),
                             if (_unreadCount > 0)
                               Positioned(
-                                top: -2,
-                                right: -2,
+                                top: -4,
+                                right: -4,
                                 child: Container(
-                                  padding: const EdgeInsets.all(6),
+                                  padding: const EdgeInsets.all(5),
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.error,
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFFFF4757),
+                                        Color(0xFFFF6B81),
+                                      ],
+                                    ),
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: Theme.of(
-                                        context,
-                                      ).scaffoldBackgroundColor,
+                                      color: const Color(0xFF0A0A0A),
                                       width: 2,
                                     ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFFFF4757).withOpacity(0.4),
+                                        blurRadius: 6,
+                                      ),
+                                    ],
                                   ),
                                   child: Text(
                                     _unreadCount > 9 ? '9+' : '$_unreadCount',
                                     style: GoogleFonts.inter(
                                       color: Colors.white,
-                                      fontSize: 10,
+                                      fontSize: 9,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
                               ),
                           ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).cardColor,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Theme.of(context).dividerColor,
-                          ),
-                        ),
-                        child: Text(
-                          '${_subjects.length}',
-                          style: GoogleFonts.outfit(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.white
-                                    : Theme.of(context).primaryColor,
-                          ),
                         ),
                       ),
                     ],
