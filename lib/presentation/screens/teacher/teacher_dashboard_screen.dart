@@ -23,6 +23,7 @@ import '../auth/change_password_screen.dart';
 import 'package:edu_platform_app/data/services/settings_service.dart';
 import 'package:edu_platform_app/core/constants/app_constants.dart';
 import 'package:edu_platform_app/data/services/theme_service.dart';
+import 'package:edu_platform_app/data/services/notification_service.dart';
 
 class TeacherDashboardScreen extends StatefulWidget {
   final int? teacherId; // Optional teacher ID for admin view
@@ -43,6 +44,15 @@ class TeacherDashboardScreen extends StatefulWidget {
 class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
   int _currentIndex = 0;
   final _tokenService = TokenService();
+
+  @override
+  void initState() {
+    super.initState();
+    // Process any pending notification that launched the app from terminated state
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService.processPendingNotification();
+    });
+  }
 
   Future<void> _performLogout() async {
     // Get userId before clearing tokens
@@ -717,7 +727,9 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
 
                     final request = CourseRequest(
                       title: titleController.text,
-                      description: descriptionController.text.isNotEmpty ? descriptionController.text : null,
+                      description: descriptionController.text.isNotEmpty
+                          ? descriptionController.text
+                          : null,
                       gradeYear: int.parse(
                         _convertArabicToEnglishNumbers(
                           gradeYearController.text,
@@ -781,13 +793,21 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
   String? _selectedStage;
 
   List<String> _getUniqueStages() {
-    final stages = _courses
-        .map((c) => c.educationStageName?.isNotEmpty == true
-            ? c.educationStageName!
-            : 'أخرى')
-        .toSet()
-        .toList();
-    stages.sort();
+    // Build a map: stageName -> min educationStageId (gradeYear) for proper ordering
+    final stageOrderMap = <String, int>{};
+    for (final c in _courses) {
+      final name = c.educationStageName?.isNotEmpty == true
+          ? c.educationStageName!
+          : 'أخرى';
+      final stageId = c.gradeYear; // gradeYear holds educationStageId from API
+      if (!stageOrderMap.containsKey(name) || stageId < stageOrderMap[name]!) {
+        stageOrderMap[name] = stageId;
+      }
+    }
+    final stages = stageOrderMap.keys.toList();
+    // Sort by educationStageId (ascending) so الأول < الثاني < الثالث
+    stages.sort(
+        (a, b) => (stageOrderMap[a] ?? 0).compareTo(stageOrderMap[b] ?? 0));
     return ['الكل', ...stages];
   }
 
@@ -1164,12 +1184,9 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                                               .getTeacherId();
                                         }
                                         if (teacherId != null && mounted) {
-                                          showDialog(
-                                            context: context,
-                                            builder: (context) =>
-                                                AddStudentToCourseDialog(
-                                              teacherId: teacherId!,
-                                            ),
+                                          AddStudentToCourseDialog.show(
+                                            context,
+                                            teacherId: teacherId!,
                                           );
                                         }
                                       },
@@ -1464,7 +1481,8 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
 
   Future<void> _showEditCourseDialog(Course course) async {
     final titleController = TextEditingController(text: course.title);
-    final descriptionController = TextEditingController(text: course.description ?? '');
+    final descriptionController =
+        TextEditingController(text: course.description ?? '');
     final gradeYearController = TextEditingController(
       text: course.gradeYear.toString(),
     );
@@ -1697,7 +1715,9 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
 
                     final request = CourseRequest(
                       title: titleController.text,
-                      description: descriptionController.text.isNotEmpty ? descriptionController.text : null,
+                      description: descriptionController.text.isNotEmpty
+                          ? descriptionController.text
+                          : null,
                       gradeYear: int.parse(
                         _convertArabicToEnglishNumbers(
                           gradeYearController.text,
@@ -2880,8 +2900,8 @@ class _TeacherSettingsPageState extends State<_TeacherSettingsPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              ManageAssistantsScreen(teacherId: widget.teacherId),
+                          builder: (context) => ManageAssistantsScreen(
+                              teacherId: widget.teacherId),
                         ),
                       );
                     },

@@ -12,7 +12,6 @@ import '../auth/login_screen.dart';
 import '../student/my_courses_page.dart';
 import '../student/select_subject_screen.dart';
 
-
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -26,17 +25,26 @@ class _MainScreenState extends State<MainScreen> {
   final GlobalKey<NavigatorState> _homeNavigatorKey =
       GlobalKey<NavigatorState>();
 
+  @override
+  void initState() {
+    super.initState();
+    // Process any pending notification that launched the app from terminated state
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService.processPendingNotification();
+    });
+  }
+
   List<Widget> get _pages => [
-    _HomeNavigator(navigatorKey: _homeNavigatorKey),
-    const SafeArea(child: MyCoursesPage()),
-    const SafeArea(child: _ProfilePlaceholder()),
-    SafeArea(
-      child: SettingsScreen(
-        onLogout: _handleLogout,
-        onDeleteAccount: _handleDeleteAccount,
-      ),
-    ),
-  ];
+        _HomeNavigator(navigatorKey: _homeNavigatorKey),
+        const SafeArea(child: MyCoursesPage()),
+        const SafeArea(child: _ProfilePlaceholder()),
+        SafeArea(
+          child: SettingsScreen(
+            onLogout: _handleLogout,
+            onDeleteAccount: _handleDeleteAccount,
+          ),
+        ),
+      ];
 
   Future<void> _performLogout() async {
     // Get userId before clearing tokens
@@ -252,7 +260,9 @@ class _MainScreenState extends State<MainScreen> {
       _NavItem(Icons.settings_rounded, 'الإعدادات'),
     ];
 
-    return Container(
+    return SafeArea(
+      top: false,
+      child: Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       decoration: BoxDecoration(
@@ -289,7 +299,9 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? (isDark ? AppColors.primary.withOpacity(0.2) : Colors.white)
+                      ? (isDark
+                          ? AppColors.primary.withOpacity(0.2)
+                          : Colors.white)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(30),
                 ),
@@ -328,6 +340,7 @@ class _MainScreenState extends State<MainScreen> {
           );
         }),
       ),
+    ),
     );
   }
 }
@@ -415,14 +428,13 @@ class _ProfilePlaceholderState extends State<_ProfilePlaceholder> {
 
           if (mounted) {
             setState(() {
-              _userName = '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}'
-                  .trim();
+              _userName =
+                  '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}'.trim();
               if (_userName!.isEmpty) _userName = 'اسم الطالب';
 
               _userRole = role;
               _userEmail = data['email'] ?? email;
-              _photoUrl =
-                  data['studentProfileImageUrl'] ??
+              _photoUrl = data['studentProfileImageUrl'] ??
                   photo; // Use studentProfileImageUrl from API
               _studentPhoneNumber = data['studentPhoneNumber'];
               _parentPhoneNumber = data['parentPhoneNumber'];

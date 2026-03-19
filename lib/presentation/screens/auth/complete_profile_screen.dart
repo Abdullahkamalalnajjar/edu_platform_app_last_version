@@ -11,6 +11,7 @@ import 'package:edu_platform_app/data/models/api_response.dart';
 import 'package:edu_platform_app/presentation/widgets/custom_text_field.dart';
 import 'package:edu_platform_app/presentation/widgets/primary_button.dart';
 import 'package:edu_platform_app/presentation/screens/auth/login_screen.dart';
+import 'package:edu_platform_app/presentation/widgets/app_background.dart';
 
 class CompleteProfileScreen extends StatefulWidget {
   final bool isFirstLogin;
@@ -284,20 +285,23 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
           widget.isFirstLogin ? 'استكمال البيانات' : 'تعديل الملف الشخصي',
-          style: GoogleFonts.outfit(color: AppColors.textPrimary),
+          style: GoogleFonts.outfit(
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
         ),
         centerTitle: true,
         automaticallyImplyLeading:
-            !widget.isFirstLogin, // Hide back if forced first login
+            !widget.isFirstLogin,
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
+      body: AppBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,
@@ -542,6 +546,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }

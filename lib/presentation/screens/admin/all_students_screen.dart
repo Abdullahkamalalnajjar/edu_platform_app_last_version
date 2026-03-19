@@ -5,6 +5,7 @@ import 'package:edu_platform_app/core/constants/app_colors.dart';
 import 'package:edu_platform_app/data/models/student_model.dart';
 import 'package:edu_platform_app/data/services/admin_service.dart';
 import 'package:edu_platform_app/data/services/auth_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AllStudentsScreen extends StatefulWidget {
   const AllStudentsScreen({super.key});
@@ -587,27 +588,28 @@ class _AllStudentsScreenState extends State<AllStudentsScreen>
               spacing: 8,
               runSpacing: 4,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.secondary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: AppColors.secondary.withOpacity(0.2),
+                if (student.gradeYear != 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.secondary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: AppColors.secondary.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Text(
+                      'الصف ${student.gradeYear}',
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.secondary,
+                      ),
                     ),
                   ),
-                  child: Text(
-                    'الصف ${student.gradeYear}',
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.secondary,
-                    ),
-                  ),
-                ),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
@@ -644,21 +646,81 @@ class _AllStudentsScreenState extends State<AllStudentsScreen>
                 showDialog(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('تفاصيل الطالب'),
+                    backgroundColor: AppColors.surface,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    title: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.info.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.person_rounded,
+                            color: AppColors.info,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            student.fullName,
+                            style: GoogleFonts.outfit(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: AppColors.textPrimary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                     content: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        ListTile(
-                          leading: const Icon(Icons.phone),
-                          title: const Text('رقم ولي الأمر'),
-                          subtitle: Text(student.parentPhoneNumber),
-                        ),
+                        // Student phone
+                        if (student.studentPhoneNumber.isNotEmpty)
+                          _buildPhoneRow(
+                            ctx,
+                            label: 'رقم الطالب',
+                            phone: student.studentPhoneNumber,
+                            icon: Icons.phone_android_rounded,
+                            color: AppColors.info,
+                          ),
+                        if (student.studentPhoneNumber.isNotEmpty)
+                          const SizedBox(height: 10),
+                        // Parent phone
+                        if (student.parentPhoneNumber.isNotEmpty)
+                          _buildPhoneRow(
+                            ctx,
+                            label: 'رقم ولي الأمر',
+                            phone: student.parentPhoneNumber,
+                            icon: Icons.supervisor_account_rounded,
+                            color: AppColors.secondary,
+                          ),
+                        if (student.studentPhoneNumber.isEmpty &&
+                            student.parentPhoneNumber.isEmpty)
+                          Text(
+                            'لا يوجد أرقام هاتف مسجلة',
+                            style: GoogleFonts.inter(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
                       ],
                     ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx),
-                        child: const Text('إغلاق'),
+                        child: Text(
+                          'إغلاق',
+                          style: GoogleFonts.inter(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -717,6 +779,87 @@ class _AllStudentsScreenState extends State<AllStudentsScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPhoneRow(
+    BuildContext context, {
+    required String label,
+    required String phone,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.07),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  phone,
+                  style: GoogleFonts.outfit(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Call button
+          GestureDetector(
+            onTap: () async {
+              final uri = Uri(scheme: 'tel', path: phone);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(0.35),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.call_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

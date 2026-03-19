@@ -38,13 +38,46 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
   NonSubmittedStudentsResponse? _nonSubmittedResponse;
   bool _showingNonSubmittedOnly = false;
   bool _filterPendingOnly = false;
+  int _totalManualQuestions = -1; // -1 = not fetched yet
 
   @override
   void initState() {
     super.initState();
     _fetchSubmissions();
     _fetchNonSubmittedStats();
+    _fetchManualQuestionCount();
     _searchController.addListener(_onSearchChanged);
+  }
+
+  /// Fetch exam questions once to count how many need manual grading.
+  /// Used to compute the accurate pending count on each submission card.
+  Future<void> _fetchManualQuestionCount() async {
+    final examId = widget.examId;
+    if (examId == null) return;
+    try {
+      final response = await _courseService.getExamById(examId);
+      if (mounted && response.succeeded && response.data != null) {
+        final questions = response.data!.questions;
+        final count = questions.where((q) {
+          return q.answerType == 'TextAnswer' ||
+              q.answerType == 'ImageAnswer' ||
+              q.questionType == 'MCQ' ||
+              q.questionType == 'Image';
+        }).length;
+        setState(() {
+          _totalManualQuestions = count;
+        });
+      }
+    } catch (_) {}
+  }
+
+  /// Returns the real pending manual count for a submission.
+  /// Uses _totalManualQuestions if available, falls back to server's value.
+  int _manualPending(ExamSubmission s) {
+    if (_totalManualQuestions < 0) return s.manualPendingGradingAnswers;
+    final pending = (_totalManualQuestions - s.manuallyGradedAnswers)
+        .clamp(0, _totalManualQuestions);
+    return pending;
   }
 
   Future<void> _fetchNonSubmittedStats() async {
@@ -84,9 +117,9 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
       // We might need to handle the display separately or merge them.
     }
 
-    // Apply pending filter
+    // Apply pending filter — only count actual manual (essay) questions
     if (_filterPendingOnly) {
-      baseList = baseList.where((s) => s.pendingGradingAnswers > 0).toList();
+      baseList = baseList.where((s) => _manualPending(s) > 0).toList();
     }
 
     if (_searchQuery.isEmpty) {
@@ -399,7 +432,7 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
         _nonSubmittedResponse?.totalEnrolledStudents ?? _submissions.length;
     final nonSubmitted = _nonSubmittedResponse?.nonSubmittedCount ?? 0;
     final pendingCount =
-        _submissions.where((s) => s.pendingGradingAnswers > 0).length;
+        _submissions.where((s) => _manualPending(s) > 0).length;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -835,6 +868,7 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
   }
 
   Widget _buildSubmissionCard(ExamSubmission submission) {
+    print('📋 Submission: ${submission.studentName} | gradedByName: "${submission.gradedByName}" | manuallyGraded: ${submission.manuallyGradedAnswers} | pending: ${submission.pendingGradingAnswers}');
     String submittedAt = 'غير معروف';
     if (submission.submittedAt != null) {
       final dt = submission.submittedAt!.toLocal();
@@ -1061,36 +1095,57 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
                 ),
               ],
             ),
-            if (submission.gradedByName != null &&
-                submission.gradedByName!.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.verified_user_outlined,
-                      size: 12,
-                      color: AppColors.success,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'صححه: ${submission.gradedByName}',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: AppColors.success,
-                        fontWeight: FontWeight.w600,
+            // Status badge (handles graded/pending display)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildStatusBadge(submission),
+                  if (widget.examId != null)
+                    InkWell(
+                      onTap: () => _handleCorrectStudent(submission.studentId),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.primary.withOpacity(0.5),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.check_circle_outline,
+                              size: 14,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'تصحيح',
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                ],
               ),
+            ),
           ],
         ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
+        trailing: Text(
               formatScoreWithMax(
                 submission.currentTotalScore,
                 submission.maxScore,
@@ -1101,79 +1156,6 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
                 color: AppColors.primary,
               ),
             ),
-            if (submission.pendingGradingAnswers > 0)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.warning.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'بانتظار التصحيح (${submission.pendingGradingAnswers})',
-                  style: const TextStyle(
-                    color: AppColors.warning,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              )
-            else
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'تم التصحيح',
-                  style: TextStyle(
-                    color: AppColors.success,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            const SizedBox(height: 8),
-            if (widget.examId != null)
-              InkWell(
-                onTap: () => _handleCorrectStudent(submission.studentId),
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border:
-                        Border.all(color: AppColors.primary.withOpacity(0.5)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.check_circle_outline,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'تصحيح',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
         onTap: () {
           Navigator.push(
             context,
@@ -1191,5 +1173,84 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
         },
       ),
     );
+  }
+
+  Widget _buildStatusBadge(ExamSubmission submission) {
+    final hasGradedBy = submission.gradedByName != null &&
+        submission.gradedByName!.isNotEmpty;
+
+    if (hasGradedBy) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.success.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          'تم تصحيح بواسطة ${submission.gradedByName}',
+          style: const TextStyle(
+            color: AppColors.success,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    final manualPending = _manualPending(submission);
+    final hasManualQuestions = _totalManualQuestions > 0;
+    final allManualDone = hasManualQuestions &&
+        manualPending == 0 &&
+        submission.manuallyGradedAnswers > 0;
+
+    if (allManualDone) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.success.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Text(
+          'تم التصحيح',
+          style: TextStyle(
+            color: AppColors.success,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    } else if (manualPending > 0) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.warning.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          'بانتظار تصحيح ($manualPending)',
+          style: const TextStyle(
+            color: AppColors.warning,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    } else {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.warning.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Text(
+          'بانتظار تصحيح',
+          style: TextStyle(
+            color: AppColors.warning,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
   }
 }

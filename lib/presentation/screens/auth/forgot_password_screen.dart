@@ -6,6 +6,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:edu_platform_app/core/constants/app_colors.dart';
 import 'package:edu_platform_app/data/models/auth_models.dart';
 import 'package:edu_platform_app/data/services/auth_service.dart';
+import 'package:edu_platform_app/presentation/widgets/app_background.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -193,23 +194,25 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: _buildAppBar(),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              // Step Indicator
-              _buildStepIndicator(),
-              const SizedBox(height: 40),
+      body: AppBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                // Step Indicator
+                _buildStepIndicator(),
+                const SizedBox(height: 40),
 
-              // Step Content
-              FadeInUp(
-                duration: const Duration(milliseconds: 500),
-                child: _buildStepContent(),
-              ),
-            ],
+                // Step Content
+                FadeInUp(
+                  duration: const Duration(milliseconds: 500),
+                  child: _buildStepContent(),
+                ),
+              ],
+            ),
           ),
         ),
       ),

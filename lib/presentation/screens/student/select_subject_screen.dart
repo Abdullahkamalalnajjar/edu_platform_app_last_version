@@ -8,7 +8,6 @@ import 'package:edu_platform_app/data/services/subject_service.dart';
 import 'package:edu_platform_app/data/services/user_notification_service.dart';
 import 'select_teacher_screen.dart';
 import 'package:edu_platform_app/presentation/screens/shared/notifications_screen.dart';
-import 'package:edu_platform_app/core/utils/ramadan_helper.dart';
 
 class SelectSubjectScreen extends StatefulWidget {
   const SelectSubjectScreen({super.key});
@@ -227,9 +226,7 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
         physics: const BouncingScrollPhysics(),
         slivers: [
           SliverToBoxAdapter(child: _buildHeader()),
-
           const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             sliver: filteredSubjects.isEmpty
@@ -259,7 +256,6 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
                     }, childCount: filteredSubjects.length),
                   ),
           ),
-
           const SliverToBoxAdapter(child: SizedBox(height: 40)),
         ],
       ),
@@ -267,12 +263,9 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
   }
 
   Widget _buildHeader() {
-    final isRamadan = RamadanHelper.isRamadan;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Ramadan Banner — shows only during Ramadan (Egypt time)
-        if (isRamadan) const _RamadanBanner(),
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
           child: Column(
@@ -318,7 +311,8 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
                         style: GoogleFonts.outfit(
                           fontSize: 36,
                           fontWeight: FontWeight.w700,
-                          color: Theme.of(context).textTheme.displayMedium?.color,
+                          color:
+                              Theme.of(context).textTheme.displayMedium?.color,
                           height: 1.1,
                         ),
                       ),
@@ -365,8 +359,7 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
                                 child: Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color:
-                                        Theme.of(context).colorScheme.error,
+                                    color: Theme.of(context).colorScheme.error,
                                     shape: BoxShape.circle,
                                     border: Border.all(
                                       color: Theme.of(
@@ -376,9 +369,7 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
                                     ),
                                   ),
                                   child: Text(
-                                    _unreadCount > 9
-                                        ? '9+'
-                                        : '$_unreadCount',
+                                    _unreadCount > 9 ? '9+' : '$_unreadCount',
                                     style: GoogleFonts.inter(
                                       color: Colors.white,
                                       fontSize: 10,
@@ -431,7 +422,6 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
       ],
     );
   }
-
 
   IconData _getSubjectIcon(String subjectName) {
     final name = subjectName.toLowerCase();
@@ -660,88 +650,6 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
           ),
         ),
       ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// RAMADAN BANNER WIDGET
-// ═══════════════════════════════════════════════════════════════════════
-
-class _RamadanBanner extends StatefulWidget {
-  const _RamadanBanner();
-
-  @override
-  State<_RamadanBanner> createState() => _RamadanBannerState();
-}
-
-class _RamadanBannerState extends State<_RamadanBanner>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final day = RamadanHelper.ramadanDay;
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (context, _) {
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                AppColors.primaryDark,
-                Color.lerp(
-                  AppColors.primary,
-                  AppColors.primaryDark,
-                  _ctrl.value,
-                )!,
-                AppColors.primaryDark,
-              ],
-            ),
-            border: const Border(
-              bottom: BorderSide(color: Color(0xFFD4AF37), width: 1.5),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Crescent icon
-              const Text('🌙', style: TextStyle(fontSize: 18)),
-              const SizedBox(width: 10),
-              Text(
-                day > 0 ? 'رمضان كريم  ·  اليوم $day' : 'رمضان كريم',
-                style: GoogleFonts.outfit(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFFD4AF37),
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Text('⭐', style: TextStyle(fontSize: 14)),
-            ],
-          ),
-        );
-      },
     );
   }
 }

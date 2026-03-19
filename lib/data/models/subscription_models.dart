@@ -4,6 +4,8 @@ class CourseSubscription {
   final int courseSubscriptionId;
   final int studentId;
   final String studentName;
+  final String studentEmail;
+  final String studentPhone;
   final int courseId;
   final String courseName;
   final String teacherName;
@@ -17,6 +19,8 @@ class CourseSubscription {
     required this.courseSubscriptionId,
     required this.studentId,
     required this.studentName,
+    this.studentEmail = '',
+    this.studentPhone = '',
     required this.courseId,
     required this.courseName,
     required this.teacherName,
@@ -32,6 +36,8 @@ class CourseSubscription {
       courseSubscriptionId: json['courseSubscriptionId'] ?? 0,
       studentId: json['studentId'] ?? 0,
       studentName: json['studentName'] ?? '',
+      studentEmail: json['studentEmail'] ?? json['email'] ?? '',
+      studentPhone: json['studentPhone'] ?? json['phoneNumber'] ?? json['parentPhoneNumber'] ?? '',
       courseId: json['courseId'] ?? 0,
       courseName: json['courseName'] ?? '',
       teacherName: json['teacherName'] ?? '',

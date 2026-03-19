@@ -7,6 +7,7 @@ class StudentModel {
   final String fullName;
   final int gradeYear;
   final String parentPhoneNumber;
+  final String studentPhoneNumber;
 
   StudentModel({
     required this.studentId,
@@ -17,6 +18,7 @@ class StudentModel {
     required this.fullName,
     required this.gradeYear,
     required this.parentPhoneNumber,
+    this.studentPhoneNumber = '',
   });
 
   factory StudentModel.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class StudentModel {
       fullName: json['fullName'] ?? '',
       gradeYear: json['gradeYear'] ?? 0,
       parentPhoneNumber: json['parentPhoneNumber'] ?? '',
+      studentPhoneNumber: json['studentPhoneNumber'] ?? '',
     );
   }
 
@@ -42,6 +45,8 @@ class StudentModel {
       'fullName': fullName,
       'gradeYear': gradeYear,
       'parentPhoneNumber': parentPhoneNumber,
+      'studentPhoneNumber': studentPhoneNumber,
     };
   }
 }
+

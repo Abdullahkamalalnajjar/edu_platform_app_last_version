@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
@@ -23,7 +24,7 @@ import '../../../../data/services/token_service.dart';
 import '../../../widgets/dialogs/add_deadline_exception_dialog.dart';
 import '../../../../data/services/settings_service.dart';
 import 'widgets/student_score_card.dart';
-import 'lecture_details_screen.dart';
+
 
 class CourseDetailsScreen extends StatefulWidget {
   final Course course;
@@ -724,331 +725,617 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
   Widget _buildLectureCard(Lecture lecture, int index) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final accent = Theme.of(context).primaryColor;
+    final exams = _lectureExams[lecture.id] ?? [];
+    final isTeacherOrAssistant = widget.isTeacher || _isAssistant;
 
     return FadeInUp(
       duration: const Duration(milliseconds: 400),
       delay: Duration(milliseconds: 50 * (index % 8)),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            final exams = _lectureExams[lecture.id] ?? [];
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => LectureDetailsScreen(
-                  lecture: lecture,
-                  course: widget.course,
-                  isTeacher: widget.isTeacher || _isAssistant,
-                  hasApprovedSubscription: _hasApprovedSubscription,
-                  isAssistant: _isAssistant,
-                  exams: exams,
-                  lectureIndex: index,
-                  onAddMaterial: widget.isTeacher
-                      ? () => _showAddMaterialDialog(lecture, index)
-                      : null,
-                  onReorderMaterials: widget.isTeacher
-                      ? () async => _showReorderMaterialsSheet(lecture)
-                      : null,
-                  onCreateExam: widget.isTeacher
-                      ? () => _showCreateExamDialog(lecture)
-                      : null,
-                  onEditLecture: (widget.isTeacher && !_isAssistant)
-                      ? () => _showEditLectureDialog(lecture)
-                      : null,
-                  onDeleteLecture: (widget.isTeacher && !_isAssistant)
-                      ? () => _deleteLecture(lecture.id)
-                      : null,
-                  onToggleVisibility: (widget.isTeacher && !_isAssistant)
-                      ? (visible) => _toggleLectureVisibility(
-                            lecture,
-                            targetVisibility: visible,
-                          )
-                      : null,
-                ),
-              ),
-            ).then((_) => _refreshCourse());
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withOpacity(0.08)
-                    : Colors.grey.shade200,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: isDark
-                      ? Colors.black.withOpacity(0.2)
-                      : Colors.black.withOpacity(0.05),
-                  blurRadius: 12,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withOpacity(0.08)
+                : Colors.grey.shade200,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withOpacity(0.2)
+                  : Colors.black.withOpacity(0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 3),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Column(
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Cover Image ─────────────────────────────────
+              if (lecture.coverImageUrl != null &&
+                  lecture.coverImageUrl!.isNotEmpty)
+                Image.network(
+                  lecture.coverImageUrl!,
+                  width: double.infinity,
+                  height: 140,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox(),
+                  loadingBuilder: (_, child, progress) {
+                    if (progress == null) return child;
+                    return Container(
+                      height: 140,
+                      color: accent.withOpacity(0.05),
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              // ── ExpansionTile ────────────────────────────────
+              Theme(
+                data: Theme.of(context).copyWith(
+                  dividerColor: Colors.transparent,
+                ),
+                child: ExpansionTile(
+              tilePadding: const EdgeInsets.fromLTRB(14, 4, 14, 4),
+              childrenPadding: EdgeInsets.zero,
+              collapsedBackgroundColor: Colors.transparent,
+              backgroundColor: Colors.transparent,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(16)),
+              ),
+              collapsedShape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(16)),
+              ),
+              leading: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [accent, accent.withOpacity(0.7)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: accent.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    '${index + 1}',
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 17,
+                    ),
+                  ),
+                ),
+              ),
+              title: Text(
+                lecture.title,
+                style: GoogleFonts.outfit(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                  height: 1.3,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 5, height: 5,
+                      decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${lecture.materials.length} مادة',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 5, height: 5,
+                      decoration: BoxDecoration(color: accent.withOpacity(0.6), shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${exams.length} اختبار',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                      ),
+                    ),
+                    if (!lecture.isVisible) ...[
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'مخفية',
+                          style: GoogleFonts.inter(
+                            fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.warning,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              // Teacher quick actions in trailing (3-dot menu)
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-                    child: Row(
-                      children: [
-                        // Number badge
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                accent,
-                                accent.withOpacity(0.7),
-                              ],
+                  if (isTeacherOrAssistant && !_isAssistant)
+                    PopupMenuButton<String>(
+                      icon: Icon(
+                        Icons.more_vert_rounded,
+                        size: 22,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                      ),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'edit':
+                            _showEditLectureDialog(lecture);
+                            break;
+                          case 'toggle':
+                            _toggleLectureVisibility(lecture,
+                                targetVisibility: !lecture.isVisible);
+                            break;
+                          case 'delete':
+                            _deleteLecture(lecture.id);
+                            break;
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        PopupMenuItem(
+                          value: 'toggle',
+                          child: Row(children: [
+                            Icon(
+                              lecture.isVisible
+                                  ? Icons.visibility_off_rounded
+                                  : Icons.visibility_rounded,
+                              size: 18,
+                              color: AppColors.primary,
                             ),
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: accent.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${index + 1}',
-                              style: GoogleFonts.outfit(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 17,
-                              ),
-                            ),
-                          ),
+                            const SizedBox(width: 8),
+                            Text(lecture.isVisible ? 'إخفاء' : 'إظهار',
+                                style: GoogleFonts.inter()),
+                          ]),
                         ),
-                        const SizedBox(width: 14),
-                        // Title + stats
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                lecture.title,
-                                style: GoogleFonts.outfit(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodyLarge
-                                      ?.color,
-                                  height: 1.3,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 5,
-                                    height: 5,
-                                    decoration: BoxDecoration(
-                                      color: accent,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${lecture.materials.length} مادة',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                      color: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.color
-                                          ?.withOpacity(0.7),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Container(
-                                    width: 5,
-                                    height: 5,
-                                    decoration: BoxDecoration(
-                                      color: accent.withOpacity(0.6),
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${_lectureExams[lecture.id]?.length ?? 0} اختبار',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                      color: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.color
-                                          ?.withOpacity(0.7),
-                                    ),
-                                  ),
-                                  if (!lecture.isVisible) ...[
-                                    const SizedBox(width: 10),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.warning
-                                            .withOpacity(0.12),
-                                        borderRadius:
-                                            BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        'مخفية',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.warning,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ],
-                          ),
+                        const PopupMenuDivider(),
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Row(children: [
+                            Icon(Icons.edit_rounded,
+                                size: 18,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.color),
+                            const SizedBox(width: 8),
+                            Text('تعديل', style: GoogleFonts.inter()),
+                          ]),
                         ),
-                        const SizedBox(width: 8),
-                        // Arrow
-                        Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: accent.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            size: 13,
-                            color: accent.withOpacity(0.6),
-                          ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(children: [
+                            const Icon(Icons.delete_rounded,
+                                size: 18, color: AppColors.error),
+                            const SizedBox(width: 8),
+                            Text('حذف',
+                                style:
+                                    GoogleFonts.inter(color: AppColors.error)),
+                          ]),
                         ),
                       ],
                     ),
-                  ),
-                  // Bottom accent line
-                  Container(
-                    height: 3,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          accent,
-                          accent.withOpacity(0.15),
-                        ],
-                      ),
-                    ),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.color
+                        ?.withOpacity(0.5),
+                    size: 20,
                   ),
                 ],
               ),
+              children: [
+                // ── Separator ──────────────────────────────
+                Container(height: 1, color: isDark ? Colors.white.withOpacity(0.06) : Colors.grey.shade100),
+
+                // ── Materials Section ───────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+                  child: Row(
+                    children: [
+                      Icon(Icons.menu_book_rounded, size: 14, color: accent),
+                      const SizedBox(width: 6),
+                      Text(
+                        'المواد',
+                        style: GoogleFonts.outfit(
+                          fontSize: 13, fontWeight: FontWeight.w700,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      if (lecture.materials.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: accent.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${lecture.materials.length}',
+                            style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: accent),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (lecture.materials.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Center(
+                      child: Text(
+                        'لم يتم إضافة مواد بعد',
+                        style: GoogleFonts.inter(
+                          color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  ...lecture.materials.map((m) => _buildMaterialItem(m)),
+
+                // ── Teacher Material Actions ────────────────
+                if (widget.isTeacher) ...[
+                  const SizedBox(height: 6),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildActionButton(
+                            label: 'إضافة مادة',
+                            icon: Icons.add_circle_outline_rounded,
+                            color: accent,
+                            onTap: () => _showAddMaterialDialog(lecture, index),
+                          ),
+                        ),
+                        if (lecture.materials.length > 1) ...[
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildActionButton(
+                              label: 'ترتيب',
+                              icon: Icons.reorder_rounded,
+                              color: Colors.blue,
+                              onTap: () => _showReorderMaterialsSheet(lecture),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+
+                // ── Exams Section ───────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+                  child: Row(
+                    children: [
+                      Icon(Icons.quiz_rounded, size: 14, color: Colors.orange),
+                      const SizedBox(width: 6),
+                      Text(
+                        'الاختبارات',
+                        style: GoogleFonts.outfit(
+                          fontSize: 13, fontWeight: FontWeight.w700,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      if (exams.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${exams.length}',
+                            style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (exams.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Center(
+                      child: Text(
+                        'لا توجد اختبارات',
+                        style: GoogleFonts.inter(
+                          color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  ...exams.map((e) => _buildExamItem(e)),
+
+                // ── Teacher: Create Exam Button ─────────────
+                if (widget.isTeacher) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
+                    child: _buildActionButton(
+                      label: 'إنشاء اختبار جديد',
+                      icon: Icons.quiz_rounded,
+                      color: Colors.orange,
+                      onTap: () => _showCreateExamDialog(lecture),
+                    ),
+                  ),
+                ] else
+                  const SizedBox(height: 12),
+
+                // ── Bottom accent line ───────────────────────
+                Container(
+                  height: 3,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [accent, accent.withOpacity(0.15)],
+                    ),
+                  ),
+                ),
+              ],
             ),
+          ),   // close Theme
+          ],   // close Column children
+          ),   // close Column
+        ),     // close ClipRRect
+      ),       // close Container
+    );         // close FadeInUp
+  }
+
+  Widget _buildActionButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(0.3)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: GoogleFonts.inter(color: color, fontWeight: FontWeight.w600, fontSize: 12),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
+
   Future<void> _showEditLectureDialog(Lecture lecture) async {
     final titleController = TextEditingController(text: lecture.title);
+    String? selectedCoverImagePath;
+
     await showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'تعديل المحاضرة',
-          style: GoogleFonts.outfit(color: AppColors.textPrimary),
-        ),
-        content: TextField(
-          controller: titleController,
-          style: const TextStyle(color: AppColors.textPrimary),
-          decoration: InputDecoration(
-            labelText: 'عنوان المحاضرة',
-            labelStyle: const TextStyle(color: AppColors.textSecondary),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.glassBorder),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primary),
-            ),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            'تعديل المحاضرة',
+            style: GoogleFonts.outfit(color: AppColors.textPrimary),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text(
-              'إلغاء',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (titleController.text.isNotEmpty) {
-                Navigator.pop(dialogContext);
-                final request = LectureRequest(
-                  title: titleController.text,
-                  courseId: widget.course.id,
-                );
-                final response = await _teacherService.updateLecture(
-                  request,
-                  lecture.id,
-                );
-
-                if (response.succeeded) {
-                  setState(() {
-                    final index = _lectures.indexWhere(
-                      (l) => l.id == lecture.id,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title field
+                TextField(
+                  controller: titleController,
+                  style: const TextStyle(color: AppColors.textPrimary),
+                  decoration: InputDecoration(
+                    labelText: 'عنوان المحاضرة',
+                    labelStyle:
+                        const TextStyle(color: AppColors.textSecondary),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.glassBorder),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: AppColors.primary),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Cover image preview / picker
+                Text(
+                  'صورة الغلاف (اختياري)',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Show existing cover image
+                if (lecture.coverImageUrl != null &&
+                    lecture.coverImageUrl!.isNotEmpty &&
+                    selectedCoverImagePath == null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.network(
+                      lecture.coverImageUrl!,
+                      width: double.infinity,
+                      height: 120,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox(),
+                    ),
+                  ),
+                if (selectedCoverImagePath != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: _buildFileImage(selectedCoverImagePath!),
+                  ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () async {
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.image,
                     );
-                    if (index != -1) {
-                      _lectures[index] = Lecture(
-                        id: lecture.id,
-                        title: titleController.text,
-                        courseId: lecture.courseId,
-                        materials: lecture.materials,
-                        isVisible: lecture.isVisible,
-                        index: lecture.index,
-                      );
+                    if (result != null && result.files.single.path != null) {
+                      setDialogState(() {
+                        selectedCoverImagePath = result.files.single.path;
+                      });
                     }
-                  });
-                  if (mounted)
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('تم تحديث المحاضرة بنجاح')),
-                    );
-                } else {
-                  if (mounted)
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(response.message),
-                        backgroundColor: AppColors.error,
-                      ),
-                    );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                          color: AppColors.primary.withOpacity(0.4),
+                          style: BorderStyle.solid),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.image_outlined,
+                            color: AppColors.primary, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            selectedCoverImagePath != null
+                                ? selectedCoverImagePath!
+                                    .split('/')
+                                    .last
+                                    .split('\\')
+                                    .last
+                                : 'اختر صورة غلاف',
+                            style: GoogleFonts.inter(
+                              color: selectedCoverImagePath != null
+                                  ? AppColors.textPrimary
+                                  : AppColors.textSecondary,
+                              fontSize: 13,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (selectedCoverImagePath != null)
+                          GestureDetector(
+                            onTap: () => setDialogState(
+                                () => selectedCoverImagePath = null),
+                            child: const Icon(Icons.close,
+                                size: 16,
+                                color: AppColors.textSecondary),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text(
+                'إلغاء',
+                style: TextStyle(color: AppColors.textSecondary),
               ),
             ),
-            child: const Text('حفظ'),
-          ),
-        ],
+            ElevatedButton(
+              onPressed: () async {
+                if (titleController.text.isNotEmpty) {
+                  Navigator.pop(dialogContext);
+                  final request = LectureRequest(
+                    title: titleController.text,
+                    courseId: widget.course.id,
+                  );
+                  final response = await _teacherService.updateLecture(
+                    request,
+                    lecture.id,
+                    coverImagePath: selectedCoverImagePath,
+                  );
+
+                  if (response.succeeded) {
+                    await _refreshCourse();
+                    if (mounted)
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('تم تحديث المحاضرة بنجاح')),
+                      );
+                  } else {
+                    if (mounted)
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(response.message),
+                          backgroundColor: AppColors.error,
+                        ),
+                      );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text('حفظ'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1241,6 +1528,34 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── Cover Image (if available) ────────────────────────
+            if (material.coverImageUrl != null &&
+                material.coverImageUrl!.isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(
+                  material.coverImageUrl!,
+                  width: double.infinity,
+                  height: 160,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return Container(
+                      height: 160,
+                      color: AppColors.background.withOpacity(0.5),
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
             // Title Row - On its own
             Row(
               children: [
@@ -1952,94 +2267,194 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
 
   // --- Logic Methods (Kept As Is) ---
 
+  /// Builds an Image widget from a local file path (dart:io)
+  Widget _buildFileImage(String path, {double height = 120}) {
+    return Image.file(
+      File(path),
+      width: double.infinity,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => const SizedBox(),
+    );
+  }
+
   Future<void> _showAddLectureDialog() async {
     final titleController = TextEditingController();
+    String? selectedCoverImagePath;
+
     await showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: Theme.of(context).cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'إضافة محاضرة جديدة',
-          style: GoogleFonts.outfit(
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-          ),
-        ),
-        content: TextField(
-          controller: titleController,
-          style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
-          decoration: InputDecoration(
-            labelText: 'عنوان المحاضرة',
-            labelStyle: TextStyle(
-              color: Theme.of(context).textTheme.bodyMedium?.color,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Theme.of(context).dividerColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primary),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: Theme.of(context).cardColor,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            'إضافة محاضرة جديدة',
+            style: GoogleFonts.outfit(
+              color: Theme.of(context).textTheme.bodyLarge?.color,
             ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(
-              'إلغاء',
-              style: TextStyle(
-                color: Theme.of(context).textTheme.bodyMedium?.color,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title field
+                TextField(
+                  controller: titleController,
+                  style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color),
+                  decoration: InputDecoration(
+                    labelText: 'عنوان المحاضرة',
+                    labelStyle: TextStyle(
+                        color:
+                            Theme.of(context).textTheme.bodyMedium?.color),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          BorderSide(color: Theme.of(context).dividerColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: AppColors.primary),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Cover image label
+                Text(
+                  'صورة الغلاف (اختياري)',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Preview selected image
+                if (selectedCoverImagePath != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: _buildFileImage(selectedCoverImagePath!),
+                    ),
+                  ),
+                // Picker button
+                InkWell(
+                  onTap: () async {
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.image,
+                    );
+                    if (result != null &&
+                        result.files.single.path != null) {
+                      setDialogState(() {
+                        selectedCoverImagePath = result.files.single.path;
+                      });
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                          color: AppColors.primary.withOpacity(0.4),
+                          style: BorderStyle.solid),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.image_outlined,
+                            color: AppColors.primary, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            selectedCoverImagePath != null
+                                ? selectedCoverImagePath!
+                                    .split('/')
+                                    .last
+                                    .split('\\')
+                                    .last
+                                : 'اختر صورة غلاف',
+                            style: GoogleFonts.inter(
+                              color: selectedCoverImagePath != null
+                                  ? Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge
+                                      ?.color
+                                  : Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.color,
+                              fontSize: 13,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (selectedCoverImagePath != null)
+                          GestureDetector(
+                            onTap: () => setDialogState(
+                                () => selectedCoverImagePath = null),
+                            child: const Icon(Icons.close,
+                                size: 16,
+                                color: AppColors.textSecondary),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(
+                'إلغاء',
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                ),
               ),
             ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (titleController.text.isNotEmpty) {
-                Navigator.pop(dialogContext);
-                final request = LectureRequest(
-                  title: titleController.text,
-                  courseId: widget.course.id,
-                );
-                final response = await _teacherService.createLecture(request);
-                if (response.succeeded && response.data != null) {
-                  // Hide the lecture by default for students
-                  await _teacherService.changeLectureVisibility(
-                    lectureId: response.data!,
-                    isVisible: false,
+            ElevatedButton(
+              onPressed: () async {
+                if (titleController.text.isNotEmpty) {
+                  Navigator.pop(dialogContext);
+                  final request = LectureRequest(
+                    title: titleController.text,
+                    courseId: widget.course.id,
                   );
-
-                  setState(() {
-                    _lectures.add(
-                      Lecture(
-                        id: response.data!,
-                        title: titleController.text,
-                        courseId: widget.course.id,
-                        materials: [],
-                        isVisible: false, // Default to hidden
-                        index:
-                            _lectures.isNotEmpty ? _lectures.last.index + 1 : 1,
-                      ),
+                  final response = await _teacherService.createLecture(
+                    request,
+                    coverImagePath: selectedCoverImagePath,
+                  );
+                  if (response.succeeded && response.data != null) {
+                    await _teacherService.changeLectureVisibility(
+                      lectureId: response.data!,
+                      isVisible: false,
                     );
-                  });
-                  if (mounted)
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('تم إضافة المحاضرة بنجاح (مخفية)'),
-                      ),
-                    );
+                    await _refreshCourse();
+                    if (mounted)
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('تم إضافة المحاضرة بنجاح (مخفية)'),
+                        ),
+                      );
+                  }
                 }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
+              child: const Text('إضافة'),
             ),
-            child: const Text('إضافة'),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2053,6 +2468,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
     String selectedType = 'Video';
     bool isFree = false;
     PlatformFile? selectedFile;
+    String? coverImagePath; // optional cover image
 
     await showDialog(
       context: context,
@@ -2300,6 +2716,86 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                     ),
                   ),
                 const SizedBox(height: 16),
+                // Cover Image picker (optional)
+                InkWell(
+                  onTap: () async {
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.image,
+                    );
+                    if (result != null && result.files.isNotEmpty) {
+                      setDialogState(() {
+                        coverImagePath = result.files.first.path;
+                      });
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: coverImagePath != null
+                          ? AppColors.success.withOpacity(0.1)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: coverImagePath != null
+                            ? AppColors.success.withOpacity(0.4)
+                            : AppColors.textSecondary.withOpacity(0.3),
+                        style: BorderStyle.solid,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          coverImagePath != null
+                              ? Icons.image_rounded
+                              : Icons.add_photo_alternate_outlined,
+                          color: coverImagePath != null
+                              ? AppColors.success
+                              : AppColors.textSecondary,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                coverImagePath != null
+                                    ? 'تم اختيار صورة الغلاف'
+                                    : 'صورة الغلاف (اختياري)',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  color: coverImagePath != null
+                                      ? AppColors.success
+                                      : AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              if (coverImagePath != null)
+                                Text(
+                                  coverImagePath!.split('\\').last.split('/').last,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
+                          ),
+                        ),
+                        if (coverImagePath != null)
+                          GestureDetector(
+                            onTap: () => setDialogState(() => coverImagePath = null),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              size: 18,
+                              color: AppColors.error,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
                 // Is Free Toggle
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -2406,7 +2902,10 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                     title: titleController.text.trim(),
                     isFree: isFree,
                   );
-                  response = await _teacherService.createMaterial(request);
+                  response = await _teacherService.createMaterial(
+                    request,
+                    coverImagePath: coverImagePath,
+                  );
                 } else {
                   response = await _teacherService.createMaterialWithFile(
                     type: selectedType,
@@ -2415,6 +2914,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                     fileName: selectedFile!.name,
                     title: titleController.text.trim(),
                     isFree: isFree,
+                    coverImagePath: coverImagePath,
                   );
                 }
 
@@ -2479,6 +2979,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
   Future<void> _showEditMaterialDialog(CourseMaterial material) async {
     final titleController = TextEditingController(text: material.title);
     bool isFree = material.isFree;
+    String? coverImagePath;
 
     await showDialog(
       context: context,
@@ -2493,64 +2994,153 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
               color: Theme.of(context).textTheme.bodyLarge?.color,
             ),
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-                decoration: InputDecoration(
-                  labelText: 'عنوان المادة',
-                  labelStyle: TextStyle(
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        BorderSide(color: Theme.of(context).dividerColor),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.primary),
+                  decoration: InputDecoration(
+                    labelText: 'عنوان المادة',
+                    labelStyle: TextStyle(
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          BorderSide(color: Theme.of(context).dividerColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.primary),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Theme.of(context).dividerColor,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'محتوى مجاني',
-                      style: GoogleFonts.inter(
-                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                const SizedBox(height: 16),
+                // Cover image picker (optional)
+                InkWell(
+                  onTap: () async {
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.image,
+                    );
+                    if (result != null && result.files.isNotEmpty) {
+                      setDialogState(() {
+                        coverImagePath = result.files.first.path;
+                      });
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: coverImagePath != null
+                          ? AppColors.success.withOpacity(0.1)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: coverImagePath != null
+                            ? AppColors.success.withOpacity(0.4)
+                            : AppColors.textSecondary.withOpacity(0.3),
                       ),
                     ),
-                    Switch(
-                      value: isFree,
-                      onChanged: (value) {
-                        setDialogState(() {
-                          isFree = value;
-                        });
-                      },
-                      activeColor: AppColors.success,
+                    child: Row(
+                      children: [
+                        Icon(
+                          coverImagePath != null
+                              ? Icons.image_rounded
+                              : Icons.add_photo_alternate_outlined,
+                          color: coverImagePath != null
+                              ? AppColors.success
+                              : AppColors.textSecondary,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                coverImagePath != null
+                                    ? 'تم اختيار صورة الغلاف'
+                                    : 'صورة الغلاف (اختياري)',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  color: coverImagePath != null
+                                      ? AppColors.success
+                                      : AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              if (coverImagePath != null)
+                                Text(
+                                  coverImagePath!
+                                      .split('\\')
+                                      .last
+                                      .split('/')
+                                      .last,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    color: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium?.color,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
+                          ),
+                        ),
+                        if (coverImagePath != null)
+                          GestureDetector(
+                            onTap: () =>
+                                setDialogState(() => coverImagePath = null),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              size: 18,
+                              color: AppColors.error,
+                            ),
+                          ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Theme.of(context).dividerColor,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'محتوى مجاني',
+                        style: GoogleFonts.inter(
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                      Switch(
+                        value: isFree,
+                        onChanged: (value) {
+                          setDialogState(() {
+                            isFree = value;
+                          });
+                        },
+                        activeColor: AppColors.success,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -2583,6 +3173,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                     fileUrl: material.fileUrl,
                     lectureId: lectureId,
                     isFree: isFree,
+                    coverImagePath: coverImagePath,
                   );
 
                   if (response.succeeded) {
@@ -2804,6 +3395,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
     final titleController = TextEditingController();
     final durationController = TextEditingController();
     DateTime? selectedDeadline;
+    DateTime? selectedPublishedAt;
     int selectedType = 1; // 1 = Exam, 2 = Assignment
     bool isRandomized = true;
     bool isFree = false;
@@ -3042,6 +3634,166 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                     ),
                   ),
                 ),
+                // ── publishedAt picker ─────────────────────────────
+                const SizedBox(height: 16),
+                Text(
+                  'تاريخ النشر (اختياري)',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: selectedPublishedAt ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (date != null) {
+                      final time = await showTimePicker(
+                        context: context,
+                        initialTime: selectedPublishedAt != null
+                            ? TimeOfDay.fromDateTime(selectedPublishedAt!)
+                            : TimeOfDay.now(),
+                      );
+                      if (time != null) {
+                        setDialogState(() {
+                          selectedPublishedAt = DateTime(
+                            date.year,
+                            date.month,
+                            date.day,
+                            time.hour,
+                            time.minute,
+                          );
+                        });
+                      }
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppColors.glassBorder),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.schedule_rounded,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            selectedPublishedAt != null
+                                ? '${selectedPublishedAt!.toLocal()}'.split('.')[0]
+                                : 'اختر تاريخ النشر (اختياري)',
+                            style: TextStyle(
+                              color: selectedPublishedAt != null
+                                  ? AppColors.textPrimary
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        if (selectedPublishedAt != null)
+                          GestureDetector(
+                            onTap: () => setDialogState(
+                              () => selectedPublishedAt = null,
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              size: 16,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                // ── deadline picker ────────────────────────────────
+                const SizedBox(height: 16),
+                Text(
+                  'الموعد النهائي (اختياري)',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDeadline ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context),
+                          child: child!,
+                        );
+                      },
+                    );
+                    if (date != null) {
+                      final time = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.now(),
+                        builder: (context, child) {
+                          return child!;
+                        },
+                      );
+                      if (time != null) {
+                        setDialogState(() {
+                          selectedDeadline = DateTime(
+                            date.year,
+                            date.month,
+                            date.day,
+                            time.hour,
+                            time.minute,
+                          );
+                        });
+                      }
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppColors.glassBorder),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.calendar_today_rounded,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          selectedDeadline != null
+                              ? '${selectedDeadline!.toLocal()}'.split('.')[0]
+                              : 'اختر موعداً نهائياً (اختياري)',
+                          style: TextStyle(
+                            color: selectedDeadline != null
+                                ? AppColors.textPrimary
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -3055,12 +3807,14 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                 if (titleController.text.isEmpty) return;
                 Navigator.pop(dialogContext);
 
-                // Format deadline to ISOstring if exists, but model takes string?
-                // Wait, ExamRequest takes String? for deadline.
                 String? deadlineStr;
                 if (selectedDeadline != null) {
-                  // Ensure UTC format with 'Z' which is often safer for backends
                   deadlineStr = selectedDeadline!.toUtc().toIso8601String();
+                }
+                String? publishedAtStr;
+                if (selectedPublishedAt != null) {
+                  publishedAtStr =
+                      selectedPublishedAt!.toUtc().toIso8601String();
                 }
 
                 final request = ExamRequest(
@@ -3073,6 +3827,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                   type: selectedType,
                   isRandomized: isRandomized,
                   isFree: isFree,
+                  publishedAt: publishedAtStr,
                 );
 
                 // Capture the scaffold messenger before async gap if possible,
@@ -3125,6 +3880,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
       text: exam.durationInMinutes.toString(),
     );
     DateTime? selectedDeadline = exam.deadline?.toLocal();
+    DateTime? selectedPublishedAt = exam.publishedAt?.toLocal();
     int selectedType = (exam.type == 'Assignment') ? 2 : 1;
     bool isRandomized = exam.isRandomized;
     bool isFree = exam.isFree;
@@ -3245,6 +4001,80 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                   ),
                 ),
                 const SizedBox(height: 16),
+                // ── publishedAt picker ────────────────────────────────
+                Text(
+                  'تاريخ النشر (اختياري)',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: selectedPublishedAt ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (date != null) {
+                      final time = await showTimePicker(
+                        context: context,
+                        initialTime: selectedPublishedAt != null
+                            ? TimeOfDay.fromDateTime(selectedPublishedAt!)
+                            : TimeOfDay.now(),
+                      );
+                      if (time != null) {
+                        setDialogState(() {
+                          selectedPublishedAt = DateTime(
+                            date.year, date.month, date.day,
+                            time.hour, time.minute,
+                          );
+                        });
+                      }
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppColors.glassBorder),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.schedule_rounded,
+                            color: AppColors.primary, size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            selectedPublishedAt != null
+                                ? '${selectedPublishedAt!.toLocal()}'.split('.')[0]
+                                : 'اختر تاريخ النشر (اختياري)',
+                            style: TextStyle(
+                              color: selectedPublishedAt != null
+                                  ? Theme.of(context).textTheme.bodyLarge?.color
+                                  : Theme.of(context).textTheme.bodyMedium?.color,
+                            ),
+                          ),
+                        ),
+                        if (selectedPublishedAt != null)
+                          GestureDetector(
+                            onTap: () => setDialogState(
+                              () => selectedPublishedAt = null,
+                            ),
+                            child: const Icon(Icons.close,
+                                size: 16, color: AppColors.textSecondary),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                // ── deadline picker ────────────────────────────────
+                const SizedBox(height: 16),
                 InkWell(
                   onTap: () async {
                     final initialDate = selectedDeadline ?? DateTime.now();
@@ -3344,6 +4174,11 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                 if (selectedDeadline != null) {
                   deadlineStr = selectedDeadline!.toUtc().toIso8601String();
                 }
+                String? publishedAtStr;
+                if (selectedPublishedAt != null) {
+                  publishedAtStr =
+                      selectedPublishedAt!.toUtc().toIso8601String();
+                }
 
                 final request = ExamRequest(
                   title: titleController.text,
@@ -3355,6 +4190,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                   type: selectedType,
                   isRandomized: isRandomized,
                   isFree: isFree,
+                  publishedAt: publishedAtStr,
                 );
 
                 final messenger = ScaffoldMessenger.of(context);

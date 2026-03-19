@@ -78,6 +78,9 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
   static bool _isInitialized = false;
+  /// Stores the initial message data when app is launched from terminated state.
+  /// This is processed later when the navigator is ready.
+  static Map<String, dynamic>? _pendingNotificationData;
 
   /// Android notification channel
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
@@ -136,14 +139,53 @@ class NotificationService {
     // Check if app was opened from a terminated state via notification
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
-      // Delay navigation to allow app to fully initialize
-      Future.delayed(const Duration(milliseconds: 1500), () {
-        _handleNotificationTap(initialMessage);
-      });
+      print('🚀 App launched from terminated state via notification!');
+      print('🚀 Data: ${initialMessage.data}');
+      // Store the data for later processing when navigator is ready
+      _pendingNotificationData = Map<String, dynamic>.from(initialMessage.data);
+      // Also try with a retry mechanism
+      _retryHandleInitialMessage(initialMessage.data);
     }
 
     _isInitialized = true;
     print('🔔 NotificationService initialized');
+  }
+
+  /// Retry handling the initial message until navigator is available
+  static void _retryHandleInitialMessage(
+    Map<String, dynamic> data, {
+    int attempt = 0,
+  }) {
+    if (attempt > 20) {
+      print('❌ Gave up waiting for navigator after 20 attempts');
+      return;
+    }
+
+    Future.delayed(Duration(milliseconds: 1000 + (attempt * 500)), () {
+      final navigator = navigatorKey.currentState;
+      if (navigator != null) {
+        print('✅ Navigator ready on attempt $attempt — processing notification');
+        _pendingNotificationData = null; // Clear pending
+        _handleNotificationData(data);
+      } else {
+        print('⏳ Navigator not ready, retry attempt ${attempt + 1}...');
+        _retryHandleInitialMessage(data, attempt: attempt + 1);
+      }
+    });
+  }
+
+  /// Call this from MainScreen/TeacherDashboard after they are fully loaded
+  /// to process any pending notification that launched the app.
+  static void processPendingNotification() {
+    if (_pendingNotificationData != null) {
+      print('📬 Processing pending notification from terminated state');
+      final data = Map<String, dynamic>.from(_pendingNotificationData!);
+      _pendingNotificationData = null;
+      // Small delay to let the screen fully render
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _handleNotificationData(data);
+      });
+    }
   }
 
   /// Initialize local notifications plugin
@@ -261,7 +303,13 @@ class NotificationService {
       title = 'تم تسليم اختبار جديد';
       final studentName = data['studentName'] ?? 'طالب';
       final examTitle = data['examTitle'] ?? data['lectureName'] ?? 'اختبار';
-      body = 'قام $studentName بتسليم $examTitle';
+      final studentScore = data['studentScore'];
+      final maxScore = data['maxScore'];
+      if (studentScore != null && maxScore != null) {
+        body = 'قام $studentName بتسليم $examTitle - الدرجة: $studentScore / $maxScore';
+      } else {
+        body = 'قام $studentName بتسليم $examTitle';
+      }
     }
 
     const androidDetails = AndroidNotificationDetails(

@@ -324,14 +324,37 @@ class TeacherService {
     }
   }
 
-  Future<ApiResponse<int>> createLecture(LectureRequest request) async {
+  Future<ApiResponse<int>> createLecture(
+    LectureRequest request, {
+    String? coverImagePath,
+  }) async {
     try {
-      final headers = await _getHeaders();
-      final response = await http.post(
-        Uri.parse(ApiConstants.lectures),
-        headers: headers,
-        body: jsonEncode(request.toJson()),
-      );
+      final token = await _tokenService.getToken();
+      final uri = Uri.parse(ApiConstants.lectures);
+      final multipartRequest = http.MultipartRequest('POST', uri);
+      multipartRequest.headers['Authorization'] = 'Bearer $token';
+
+      multipartRequest.fields['title'] = request.title;
+      multipartRequest.fields['courseId'] = request.courseId.toString();
+
+      if (coverImagePath != null) {
+        final coverFileName =
+            coverImagePath.split('\\').last.split('/').last;
+        final mimeType = _getMimeType(coverFileName);
+        multipartRequest.files.add(
+          await http.MultipartFile.fromPath(
+            'coverImage',
+            coverImagePath,
+            filename: coverFileName,
+            contentType: MediaType.parse(mimeType),
+          ),
+        );
+      }
+
+      print('Creating lecture with fields: ${multipartRequest.fields}');
+      final streamedResponse = await multipartRequest.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      print('Create Lecture Response: ${response.statusCode} ${response.body}');
 
       final body = jsonDecode(response.body);
       return ApiResponse<int>.fromJson(body, (data) => data as int);
@@ -347,10 +370,18 @@ class TeacherService {
   Future<ApiResponse<List<Course>>> getTeacherCourses(int teacherId) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('${ApiConstants.courses}/teacher/$teacherId'),
-        headers: headers,
-      );
+      final url = '${ApiConstants.courses}/teacher/$teacherId';
+      print('═══════════════════════════════════════════');
+      print('📡 GET TEACHER COURSES REQUEST');
+      print('URL: $url');
+      print('═══════════════════════════════════════════');
+
+      final response = await http.get(Uri.parse(url), headers: headers);
+
+      print('📥 GET TEACHER COURSES RESPONSE');
+      print('Status: ${response.statusCode}');
+      print('Body: ${response.body}');
+      print('═══════════════════════════════════════════');
 
       final body = jsonDecode(response.body);
       return ApiResponse<List<Course>>.fromJson(
@@ -367,7 +398,8 @@ class TeacherService {
   }
 
   /// Add material to a lecture (Video with URL only)
-  Future<ApiResponse<int>> createMaterial(MaterialRequest request) async {
+  Future<ApiResponse<int>> createMaterial(MaterialRequest request,
+      {String? coverImagePath}) async {
     try {
       final token = await _tokenService.getToken();
       final uri = Uri.parse(ApiConstants.materials);
@@ -383,6 +415,19 @@ class TeacherService {
       }
       if (request.videoUrl != null) {
         multipartRequest.fields['videoUrl'] = request.videoUrl!;
+      }
+      // Optional cover image
+      if (coverImagePath != null) {
+        final coverFileName = coverImagePath.split('\\').last.split('/').last;
+        final mimeType = _getMimeType(coverFileName);
+        multipartRequest.files.add(
+          await http.MultipartFile.fromPath(
+            'coverImage',
+            coverImagePath,
+            filename: coverFileName,
+            contentType: MediaType.parse(mimeType),
+          ),
+        );
       }
 
       print(
@@ -415,6 +460,7 @@ class TeacherService {
     required String fileName,
     required bool isFree,
     String? title,
+    String? coverImagePath,
   }) async {
     try {
       final token = await _tokenService.getToken();
@@ -435,7 +481,7 @@ class TeacherService {
         'Uploading file material: Type=$type, LectureID=$lectureId, File=$fileName',
       );
 
-      // Add file
+      // Add main file
       final mimeType = _getMimeType(fileName);
       request.files.add(
         await http.MultipartFile.fromPath(
@@ -445,6 +491,20 @@ class TeacherService {
           contentType: MediaType.parse(mimeType),
         ),
       );
+
+      // Optional cover image
+      if (coverImagePath != null) {
+        final coverFileName = coverImagePath.split('\\').last.split('/').last;
+        final coverMimeType = _getMimeType(coverFileName);
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'coverImage',
+            coverImagePath,
+            filename: coverFileName,
+            contentType: MediaType.parse(coverMimeType),
+          ),
+        );
+      }
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
@@ -653,18 +713,37 @@ class TeacherService {
 
   Future<ApiResponse<bool>> updateLecture(
     LectureRequest request,
-    int lectureId,
-  ) async {
+    int lectureId, {
+    String? coverImagePath,
+  }) async {
     try {
-      final headers = await _getHeaders();
-      final bodyData = request.toJson();
-      bodyData['id'] = lectureId;
+      final token = await _tokenService.getToken();
+      final uri = Uri.parse('${ApiConstants.lectures}/Edit');
+      final multipartRequest = http.MultipartRequest('PUT', uri);
+      multipartRequest.headers['Authorization'] = 'Bearer $token';
 
-      final response = await http.put(
-        Uri.parse('${ApiConstants.lectures}/Edit'),
-        headers: headers,
-        body: jsonEncode(bodyData),
-      );
+      multipartRequest.fields['id'] = lectureId.toString();
+      multipartRequest.fields['title'] = request.title;
+      multipartRequest.fields['courseId'] = request.courseId.toString();
+
+      if (coverImagePath != null) {
+        final coverFileName =
+            coverImagePath.split('\\').last.split('/').last;
+        final mimeType = _getMimeType(coverFileName);
+        multipartRequest.files.add(
+          await http.MultipartFile.fromPath(
+            'coverImage',
+            coverImagePath,
+            filename: coverFileName,
+            contentType: MediaType.parse(mimeType),
+          ),
+        );
+      }
+
+      print('Updating lecture $lectureId fields: ${multipartRequest.fields}');
+      final streamedResponse = await multipartRequest.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      print('Update Lecture Response: ${response.statusCode} ${response.body}');
 
       final body = jsonDecode(response.body);
       return ApiResponse<bool>.fromJson(body, (data) => true);
@@ -1965,7 +2044,7 @@ class TeacherService {
   }
 
   /// Edit lecture material
-  /// PUT /api/v1/lectures/Edit/materials
+  /// PUT /api/v1/lectures/Edit/materials  (multipart to support coverImage)
   Future<ApiResponse<bool>> editLectureMaterial({
     required int id,
     required String title,
@@ -1973,30 +2052,44 @@ class TeacherService {
     required String fileUrl,
     required int lectureId,
     required bool isFree,
+    String? coverImagePath,
   }) async {
     try {
-      final headers = await _getHeaders();
+      final token = await _tokenService.getToken();
       final url = '${ApiConstants.baseUrl}/api/v1/lectures/Edit/materials';
 
-      final body = jsonEncode({
-        'id': id,
-        'title': title,
-        'type': type,
-        'fileUrl': fileUrl,
-        'lectureId': lectureId,
-        'isFree': isFree,
-      });
+      final multipartRequest = http.MultipartRequest('PUT', Uri.parse(url));
+      multipartRequest.headers['Authorization'] = 'Bearer $token';
+
+      multipartRequest.fields['id'] = id.toString();
+      multipartRequest.fields['title'] = title;
+      multipartRequest.fields['type'] = type;
+      multipartRequest.fields['fileUrl'] = fileUrl;
+      multipartRequest.fields['lectureId'] = lectureId.toString();
+      multipartRequest.fields['isFree'] = isFree.toString();
+
+      // Optional cover image
+      if (coverImagePath != null) {
+        final coverFileName = coverImagePath.split('\\').last.split('/').last;
+        final mimeType = _getMimeType(coverFileName);
+        multipartRequest.files.add(
+          await http.MultipartFile.fromPath(
+            'coverImage',
+            coverImagePath,
+            filename: coverFileName,
+            contentType: MediaType.parse(mimeType),
+          ),
+        );
+      }
 
       print('--- Edit Lecture Material Request ---');
       print('URL: $url');
-      print('Body: $body');
+      print('Fields: ${multipartRequest.fields}');
+      print('CoverImage: $coverImagePath');
       print('------------------------------------');
 
-      final response = await http.put(
-        Uri.parse(url),
-        headers: headers,
-        body: body,
-      );
+      final streamedResponse = await multipartRequest.send();
+      final response = await http.Response.fromStream(streamedResponse);
 
       print('--- Edit Lecture Material Response ---');
       print('Status Code: ${response.statusCode}');

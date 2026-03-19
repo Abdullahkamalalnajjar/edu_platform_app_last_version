@@ -308,13 +308,17 @@ class CourseService {
       };
 
       final url = ApiConstants.getCourseById(courseId);
-      print('--- Get Course Request ---');
+      print('═══════════════════════════════════════════');
+      print('📡 GET COURSE BY ID REQUEST');
       print('URL: $url');
+      print('═══════════════════════════════════════════');
 
       final response = await http.get(Uri.parse(url), headers: headers);
 
-      print('Response from: $url');
+      print('📥 GET COURSE RESPONSE');
       print('Status: ${response.statusCode}');
+      print('Body: ${response.body}');
+      print('═══════════════════════════════════════════');
 
       if (response.body.isEmpty) {
         return ApiResponse(
@@ -582,6 +586,10 @@ class CourseService {
       final body = jsonDecode(response.body);
 
       if (body['succeeded'] == true) {
+        final dataList = body['data'] as List;
+        for (var item in dataList) {
+          print('📋 Raw submission: gradedByName=${item['gradedByName']}, studentName=${item['studentName']}');
+        }
         return ApiResponse<List<ExamSubmission>>.fromJson(
           body,
           (data) =>

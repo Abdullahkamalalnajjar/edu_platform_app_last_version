@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math' as math;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
@@ -13,7 +12,8 @@ import 'package:edu_platform_app/data/services/token_service.dart'; // Added
 import 'package:edu_platform_app/data/services/location_service.dart'; // Added
 import 'package:edu_platform_app/presentation/widgets/custom_text_field.dart';
 import 'package:edu_platform_app/presentation/widgets/primary_button.dart';
-import 'package:edu_platform_app/presentation/screens/shared/main_screen.dart'; // Added
+import 'package:edu_platform_app/presentation/screens/shared/main_screen.dart';
+import 'package:edu_platform_app/presentation/widgets/app_background.dart';
 
 import '../teacher/teacher_dashboard_screen.dart';
 import '../parent/parent_dashboard_screen.dart';
@@ -372,169 +372,52 @@ class _SignupScreenState extends State<SignupScreen>
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Stack(
-        children: [
-          // Animated Background
-          _buildAnimatedBackground(size),
-
-          // Decorative Orbs
-          _buildDecorativeOrbs(size),
-
-          // Content
-          SafeArea(
-            child: CustomScrollView(
-              slivers: [
-                // App Bar
-                SliverAppBar(
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  scrolledUnderElevation: 0,
-                  pinned: true,
-                  leading: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor.withOpacity(0.8),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Theme.of(context).dividerColor,
-                        ),
-                      ),
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          color: Theme.of(context).textTheme.bodyLarge?.color,
-                          size: 20,
-                        ),
-                        onPressed: () => Navigator.pop(context),
+      body: AppBackground(
+        child: SafeArea(
+          child: CustomScrollView(
+            slivers: [
+              // App Bar
+              SliverAppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                pinned: true,
+                leading: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Theme.of(context).dividerColor,
                       ),
                     ),
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                        size: 20,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                    ),
                   ),
-                  expandedHeight: 220,
-                  flexibleSpace: FlexibleSpaceBar(background: _buildHeader()),
                 ),
+                expandedHeight: 220,
+                flexibleSpace: FlexibleSpaceBar(background: _buildHeader()),
+              ),
 
-                // Form Content
-                SliverToBoxAdapter(child: _buildForm()),
-              ],
-            ),
+              // Form Content
+              SliverToBoxAdapter(child: _buildForm()),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildAnimatedBackground(Size size) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return AnimatedBuilder(
-      animation: _backgroundController,
-      builder: (context, child) {
-        final t = _backgroundController.value;
-        return Container(
-          decoration: BoxDecoration(
-            gradient: isDark
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: const [
-                      Color(0xFF0A0000),
-                      Color(0xFF1A0000),
-                      Color(0xFF0A0000),
-                    ],
-                    stops: [
-                      0.0,
-                      0.5 + 0.15 * math.sin(t * 2 * math.pi),
-                      1.0
-                    ],
-                  )
-                : LinearGradient(
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
-                    colors: const [
-                      Colors.white,
-                      Color(0xFFFFF5F5),
-                      Colors.white,
-                    ],
-                    stops: [
-                      0.0,
-                      0.5 + 0.15 * math.sin(t * 2 * math.pi),
-                      1.0
-                    ],
-                  ),
-          ),
-        );
-      },
-    );
-  }
 
-  Widget _buildDecorativeOrbs(Size size) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Stack(
-      children: [
-        // Top Left Red Orb
-        Positioned(
-          top: -120,
-          left: -80,
-          child: Container(
-            width: 340,
-            height: 340,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  AppColors.primary.withOpacity(isDark ? 0.30 : 0.15),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // Bottom Right Red Orb
-        Positioned(
-          bottom: -80,
-          right: -80,
-          child: Container(
-            width: 360,
-            height: 360,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  AppColors.primary.withOpacity(isDark ? 0.20 : 0.12),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // Extra dark-mode mid orb
-        if (isDark)
-          Positioned(
-            top: 300,
-            right: -60,
-            child: Container(
-              width: 220,
-              height: 220,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    const Color(0xFFB71C1C).withOpacity(0.18),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
 
   Widget _buildHeader() {
     final isDark = Theme.of(context).brightness == Brightness.dark;

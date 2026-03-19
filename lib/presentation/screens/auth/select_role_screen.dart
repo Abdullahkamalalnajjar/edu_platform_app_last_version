@@ -7,6 +7,7 @@ import 'package:edu_platform_app/presentation/widgets/primary_button.dart';
 import 'package:edu_platform_app/presentation/screens/teacher/complete_teacher_profile_screen.dart';
 import 'package:edu_platform_app/presentation/screens/auth/complete_profile_screen.dart';
 import 'package:edu_platform_app/data/services/notification_service.dart';
+import 'package:edu_platform_app/presentation/widgets/app_background.dart';
 
 class SelectRoleScreen extends StatefulWidget {
   final String userId; // GUID
@@ -107,82 +108,84 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.surface,
-                    border: Border.all(color: AppColors.glassBorder),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withOpacity(0.2),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: AppBackground(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.surface,
+                      border: Border.all(color: AppColors.glassBorder),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Image.asset(
+                      'assets/images/logo_icon.png',
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.contain,
+                    ),
                   ),
-                  child: Image.asset(
-                    'assets/images/logo_icon.png',
-                    width: 80,
-                    height: 80,
-                    fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  'اختيار نوع الحساب',
+                  style: GoogleFonts.outfit(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 32),
-              Text(
-                'اختيار نوع الحساب',
-                style: GoogleFonts.outfit(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                const SizedBox(height: 12),
+                Text(
+                  'الرجاء تحديد نوع حسابك للمتابعة',
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'الرجاء تحديد نوع حسابك للمتابعة',
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  color: AppColors.textSecondary,
+                const SizedBox(height: 48),
+
+                _buildRoleCard(
+                  title: 'طالب',
+                  icon: Icons.school_rounded,
+                  value: 'Student',
+                  description: 'تصفح الدورات والمحاضرات',
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 48),
 
-              _buildRoleCard(
-                title: 'طالب',
-                icon: Icons.school_rounded,
-                value: 'Student',
-                description: 'تصفح الدورات والمحاضرات',
-              ),
+                const SizedBox(height: 16),
 
-              const SizedBox(height: 16),
+                _buildRoleCard(
+                  title: 'معلم',
+                  icon: Icons.person_pin_circle_rounded,
+                  value: 'Teacher',
+                  description: 'إنشاء وإدارة الدورات',
+                ),
 
-              _buildRoleCard(
-                title: 'معلم',
-                icon: Icons.person_pin_circle_rounded,
-                value: 'Teacher',
-                description: 'إنشاء وإدارة الدورات',
-              ),
+                const SizedBox(height: 48),
 
-              const SizedBox(height: 48),
-
-              PrimaryButton(
-                onPressed: _submitRole,
-                text: 'تأكيد ومتابعة',
-                isLoading: _isLoading,
-              ),
-            ],
+                PrimaryButton(
+                  onPressed: _submitRole,
+                  text: 'تأكيد ومتابعة',
+                  isLoading: _isLoading,
+                ),
+              ],
+            ),
           ),
         ),
       ),

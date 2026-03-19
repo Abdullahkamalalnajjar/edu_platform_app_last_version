@@ -37,6 +37,10 @@ class _TeacherSubscriptionsScreenState
   String _selectedFilter = 'Pending';
   late TabController _tabController;
 
+  // Search
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +52,7 @@ class _TeacherSubscriptionsScreenState
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -107,13 +112,27 @@ class _TeacherSubscriptionsScreenState
   }
 
   void _applyFilter() {
+    List<CourseSubscription> result;
     if (_selectedFilter == 'All') {
-      _filteredSubscriptions = List.from(_allSubscriptions);
+      result = List.from(_allSubscriptions);
     } else {
-      _filteredSubscriptions = _allSubscriptions
+      result = _allSubscriptions
           .where((sub) => sub.status == _selectedFilter)
           .toList();
     }
+
+    // Apply search query
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      result = result.where((sub) {
+        return sub.studentName.toLowerCase().contains(q) ||
+            sub.studentEmail.toLowerCase().contains(q) ||
+            sub.studentPhone.contains(q) ||
+            sub.courseName.toLowerCase().contains(q);
+      }).toList();
+    }
+
+    _filteredSubscriptions = result;
   }
 
   /// Optimistic update: updates locally first, then syncs with server.
@@ -147,6 +166,8 @@ class _TeacherSubscriptionsScreenState
             courseSubscriptionId: subscription.courseSubscriptionId,
             studentId: subscription.studentId,
             studentName: subscription.studentName,
+            studentEmail: subscription.studentEmail,
+            studentPhone: subscription.studentPhone,
             courseId: subscription.courseId,
             courseName: subscription.courseName,
             teacherName: subscription.teacherName,
@@ -255,17 +276,106 @@ class _TeacherSubscriptionsScreenState
           ),
         ),
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
-          : _filteredSubscriptions.isEmpty
-          ? _buildEmptyState()
-          : RefreshIndicator(
-              onRefresh: _fetchSubscriptions,
-              color: AppColors.primary,
-              child: _buildGroupedList(),
+      body: Column(
+        children: [
+          // ── Search Bar ──────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.glassBorder),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.trim();
+                    _applyFilter();
+                  });
+                },
+                style: GoogleFonts.inter(
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                  fontSize: 14,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'ابحث بالاسم أو الإيميل أو الرقم...',
+                  hintStyle: GoogleFonts.inter(
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                    fontSize: 13,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    color: AppColors.primary.withOpacity(0.7),
+                    size: 20,
+                  ),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? GestureDetector(
+                          onTap: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchQuery = '';
+                              _applyFilter();
+                            });
+                          },
+                          child: Icon(
+                            Icons.close_rounded,
+                            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                            size: 18,
+                          ),
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+              ),
             ),
+          ),
+          // ── Result count when searching ──────────────────
+          if (_searchQuery.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  Icon(Icons.filter_list_rounded, size: 14, color: AppColors.primary.withOpacity(0.7)),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${_filteredSubscriptions.length} نتيجة للبحث عن "$_searchQuery"',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          // ── Main Content ─────────────────────────────────
+          Expanded(
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  )
+                : _filteredSubscriptions.isEmpty
+                ? _buildEmptyState()
+                : RefreshIndicator(
+                    onRefresh: _fetchSubscriptions,
+                    color: AppColors.primary,
+                    child: _searchQuery.isNotEmpty
+                        ? _buildFlatList()
+                        : _buildGroupedList(),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -348,6 +458,55 @@ class _TeacherSubscriptionsScreenState
           duration: const Duration(milliseconds: 350),
           delay: Duration(milliseconds: 60 * index),
           child: _buildCourseGroupCard(courseSubs),
+        );
+      },
+    );
+  }
+
+  /// Flat list used when searching — shows students directly without needing to open course groups
+  Widget _buildFlatList() {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      itemCount: _filteredSubscriptions.length,
+      itemBuilder: (context, index) {
+        final sub = _filteredSubscriptions[index];
+        return FadeInUp(
+          duration: const Duration(milliseconds: 300),
+          delay: Duration(milliseconds: 40 * (index % 10)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Course name label above student card
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 6, height: 6,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        sub.courseName,
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary.withOpacity(0.8),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _buildStudentItem(sub),
+              const SizedBox(height: 4),
+            ],
+          ),
         );
       },
     );

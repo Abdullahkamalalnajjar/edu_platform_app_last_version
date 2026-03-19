@@ -14,6 +14,7 @@ import 'package:edu_platform_app/presentation/screens/teacher/image_editor_scree
 import 'package:edu_platform_app/presentation/screens/teacher/add_exam_questions_screen.dart';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:convert';
 
 class StudentExamScreen extends StatefulWidget {
   final int lectureId;
@@ -70,6 +71,7 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
   // Teacher Grading State: QuestionID -> Score/Feedback
   final Map<int, double> _teacherPoints = {};
   final Map<int, String> _teacherFeedback = {};
+  double _bonusPoints = 0.0; // extra bonus score added by teacher
 
   bool _isAlreadySubmitted = false;
   bool _isGraded = false;
@@ -320,20 +322,22 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
 
             if (accessResponse.succeeded && accessResponse.data != null) {
               final access = accessResponse.data!;
-              _effectiveDeadline = access.extendedDeadline ?? access.deadline ?? exam.deadline;
-              
-              final nowMinute = DateTime(now.year, now.month, now.day, now.hour, now.minute);
+              _effectiveDeadline =
+                  access.extendedDeadline ?? access.deadline ?? exam.deadline;
+
+              final nowMinute =
+                  DateTime(now.year, now.month, now.day, now.hour, now.minute);
               final effectiveDeadlineMinute = DateTime(
-                _effectiveDeadline!.year, 
-                _effectiveDeadline!.month, 
-                _effectiveDeadline!.day, 
-                _effectiveDeadline!.hour, 
-                _effectiveDeadline!.minute
-              );
+                  _effectiveDeadline!.year,
+                  _effectiveDeadline!.month,
+                  _effectiveDeadline!.day,
+                  _effectiveDeadline!.hour,
+                  _effectiveDeadline!.minute);
 
               if (nowMinute.isAfter(effectiveDeadlineMinute)) {
                 if (access.hasException) {
-                  print('✅ Student has exception. Access granted until ${_formatDeadline(_effectiveDeadline!)}');
+                  print(
+                      '✅ Student has exception. Access granted until ${_formatDeadline(_effectiveDeadline!)}');
                 } else {
                   print('❌ No exception. Access denied.');
                   if (mounted) {
@@ -345,11 +349,14 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
               }
             } else {
               // API failed - fallback to checking original deadline
-              final nowMinute = DateTime(now.year, now.month, now.day, now.hour, now.minute);
-              final deadlineMinute = DateTime(deadline.year, deadline.month, deadline.day, deadline.hour, deadline.minute);
-              
+              final nowMinute =
+                  DateTime(now.year, now.month, now.day, now.hour, now.minute);
+              final deadlineMinute = DateTime(deadline.year, deadline.month,
+                  deadline.day, deadline.hour, deadline.minute);
+
               if (nowMinute.isAfter(deadlineMinute)) {
-                print('❌ Failed to check access. Blocking access based on original deadline.');
+                print(
+                    '❌ Failed to check access. Blocking access based on original deadline.');
                 if (mounted) {
                   setState(() {
                     _isExpired = true;
@@ -1004,7 +1011,9 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                         final res = _studentAnswerResults[q.id];
                         if (isManualGradingType) {
                           hasEssays = true;
-                          final qMax = (res != null && res.maxScore > 0) ? res.maxScore : q.score;
+                          final qMax = (res != null && res.maxScore > 0)
+                              ? res.maxScore
+                              : q.score;
                           essayMax += qMax;
                           if (res != null) {
                             if (res.pointsEarned != null) {
@@ -1014,7 +1023,9 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                             }
                           }
                         } else {
-                          final qMax = (res != null && res.maxScore > 0) ? res.maxScore : q.score;
+                          final qMax = (res != null && res.maxScore > 0)
+                              ? res.maxScore
+                              : q.score;
                           mcqMax += qMax;
                           if (res != null) {
                             if (res.pointsEarned != null) {
@@ -1037,7 +1048,9 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                           0,
                           (sum, q) {
                             final res = _studentAnswerResults[q.id];
-                            final qMax = (res != null && res.maxScore > 0) ? res.maxScore : q.score;
+                            final qMax = (res != null && res.maxScore > 0)
+                                ? res.maxScore
+                                : q.score;
                             return sum + qMax;
                           },
                         ) ??
@@ -1631,8 +1644,7 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                 ),
               ),
             // Review Score / Status (Shows for both Student & Teacher)
-            if (_isReviewing &&
-                _studentAnswerResults.containsKey(question.id))
+            if (_isReviewing && _studentAnswerResults.containsKey(question.id))
               Builder(
                 builder: (context) {
                   final result = _studentAnswerResults[question.id]!;
@@ -2936,37 +2948,61 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
 
       for (var q in _exam!.questions) {
         final result = _studentAnswerResults[q.id];
-        if (result != null) {
-          final points = _teacherPoints[q.id] ?? result.pointsEarned ?? 0.0;
-          final feedback = _teacherFeedback[q.id] ?? result.feedback ?? '';
+        if (result == null) continue;
 
-          // We send it ONLY if it's an essay question (manual grading type)
-          final bool isEssay = q.answerType == 'TextAnswer' ||
-              q.answerType == 'ImageAnswer' ||
-              q.questionType == 'Image';
+        // ── MCQ: auto-grade on backend by comparing answers ────────
+        // Do NOT send MCQ to the manual grading API.
+        // The backend's correctAllExams / auto-grade handles MCQ.
+        // We only send truly manual (essay/image) questions.
 
-          if (isEssay) {
-            // Use studentAnswerId if available, otherwise fallback to questionId (q.id)
-            final idToSend =
-                result.studentAnswerId != 0 ? result.studentAnswerId : q.id;
+        final bool isMCQ = q.answerType != 'TextAnswer' &&
+            q.answerType != 'ImageAnswer' &&
+            q.questionType != 'Image';
 
-            print(
-              'Grading Answer: ID=$idToSend (Original=${result.studentAnswerId}), QuestionID=${q.id}, Points=$points',
-            );
-            gradedAnswers.add(
-              GradedAnswerRequest(
-                studentAnswerId: idToSend,
-                pointsEarned: points,
-                isCorrect: points >= (q.score / 2),
-                feedback: feedback,
-              ),
-            );
-          }
+        if (isMCQ) {
+          // Skip — MCQ is auto-graded server-side
+          print('⏭ Skipping MCQ question ${q.id} (auto-graded by server)');
+          continue;
         }
+
+        // ── Essay / Image: manual grading ──────────────────────────
+        final points = _teacherPoints[q.id] ?? result.pointsEarned ?? 0.0;
+        final feedback = _teacherFeedback[q.id] ?? result.feedback ?? '';
+
+        final idToSend =
+            result.studentAnswerId != 0 ? result.studentAnswerId : q.id;
+
+        print(
+          '✏️ Grading Essay: ID=$idToSend, QuestionID=${q.id}, Points=$points',
+        );
+        gradedAnswers.add(
+          GradedAnswerRequest(
+            studentAnswerId: idToSend,
+            pointsEarned: points,
+            isCorrect: points >= (q.score / 2),
+            feedback: feedback,
+          ),
+        );
       }
 
       if (gradedAnswers.isEmpty) {
-        // No essay answers to grade - just refresh and show success
+        // No essay answers to grade
+        if (_bonusPoints > 0) {
+          // If there's a bonus but no essay questions, show a warning
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'لا توجد أسئلة مقالية لإضافة الدرجة الإضافية عليها',
+                ),
+                backgroundColor: AppColors.warning,
+              ),
+            );
+          }
+          setState(() => _isSubmitting = false);
+          return;
+        }
+        // No essay answers and no bonus - just show success
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -2979,18 +3015,57 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
         return;
       }
 
+      // Distribute bonus points on top of the first essay answer
+      if (_bonusPoints > 0 && gradedAnswers.isNotEmpty) {
+        final first = gradedAnswers.first;
+        gradedAnswers[0] = GradedAnswerRequest(
+          studentAnswerId: first.studentAnswerId,
+          pointsEarned: first.pointsEarned + _bonusPoints,
+          isCorrect: first.isCorrect,
+          feedback: first.feedback,
+        );
+      }
+
       final request = GradeExamRequest(
         studentExamResultId: _studentExamResultId!,
         gradedAnswers: gradedAnswers,
       );
 
+      // ══════════════════════════════════════════════════════
+      print('');
+      print('╔══════════════════════════════════════════════╗');
+      print('║          📤 GRADE EXAM REQUEST BODY          ║');
+      print('╠══════════════════════════════════════════════╣');
+      print('║ studentExamResultId : $_studentExamResultId');
+      print('║ bonusPoints applied : $_bonusPoints');
+      print('║ total gradedAnswers : ${gradedAnswers.length}');
+      print('╠══════════════════════════════════════════════╣');
+      for (var i = 0; i < gradedAnswers.length; i++) {
+        final a = gradedAnswers[i];
+        print('║ Answer[$i]:');
+        print('║   studentAnswerId : ${a.studentAnswerId}');
+        print('║   pointsEarned    : ${a.pointsEarned}');
+        print('║   isCorrect       : ${a.isCorrect}');
+        print('║   feedback        : ${a.feedback ?? "—"}');
+      }
+      print('╠══════════════════════════════════════════════╣');
+      print('║ Full JSON Body:');
+      print('║   ${jsonEncode(request.toJson())}');
+      print('╚══════════════════════════════════════════════╝');
+      print('');
+      // ══════════════════════════════════════════════════════
+
       final response = await _courseService.gradeExam(request);
 
       if (response.succeeded && response.data != null) {
         if (mounted) {
+          // Immediately mark as graded
+          setState(() {
+            _isGraded = true;
+          });
           await _showGradingResultDialog(response.data!);
         }
-        // Refresh data to show new score - check mounted again after dialog
+        // Refresh data to show new score and get gradedByName from server
         if (mounted) {
           await _fetchExam();
         }
@@ -3110,7 +3185,7 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
     final pending = _getPendingCount();
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         border: Border(top: BorderSide(color: AppColors.glassBorder)),
@@ -3126,57 +3201,137 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (pending > 0 && !_isSubmitting)
+            // Show graded status
+            if (_isGraded) ...[
               Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                 decoration: BoxDecoration(
-                  color: AppColors.warning.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(20),
+                  color: AppColors.success.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.success.withOpacity(0.3)),
                 ),
-                child: Text(
-                  'يوجد $pending أسئلة بانتظار تصحيحك',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      color: AppColors.success,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'تم التصحيح',
+                          style: GoogleFonts.outfit(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.success,
+                          ),
+                        ),
+                        if (_gradedByName != null && _gradedByName!.isNotEmpty)
+                          Text(
+                            'بواسطة: $_gradedByName',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppColors.success.withOpacity(0.8),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isSubmitting ? null : _submitGrading,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.success,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              const SizedBox(height: 10),
+              // Still allow re-grading
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: _isSubmitting ? null : _submitGrading,
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.primary),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  elevation: 0,
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          'إعادة التصحيح',
+                          style: GoogleFonts.outfit(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
                 ),
-                child: _isSubmitting
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : Text(
-                        'حفظ التصحيح النهائي',
-                        style: GoogleFonts.outfit(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
               ),
-            ),
+            ] else ...[
+              if (pending > 0 && !_isSubmitting)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'يوجد $pending أسئلة بانتظار تصحيحك',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+
+              // ── Submit Button ────────────────────────────────────────
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isSubmitting ? null : _submitGrading,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          'حفظ التصحيح النهائي',
+                          style: GoogleFonts.outfit(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

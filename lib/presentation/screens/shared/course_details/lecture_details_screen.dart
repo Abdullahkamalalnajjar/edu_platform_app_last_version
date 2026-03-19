@@ -858,122 +858,156 @@ class _LectureDetailsScreenState extends State<LectureDetailsScreen>
           border:
               Border.all(color: iconColor.withOpacity(isDark ? 0.2 : 0.12)),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Thumbnail / Icon
-            if (isVideo && thumbnailUrl != null)
-              Container(
-                width: 80,
-                height: 50,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  image: DecorationImage(
-                    image: NetworkImage(thumbnailUrl),
-                    fit: BoxFit.cover,
-                  ),
+            // ── Cover Image (if available) ──────────────────────
+            if (material.coverImageUrl != null &&
+                material.coverImageUrl!.isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(
+                  material.coverImageUrl!,
+                  width: double.infinity,
+                  height: 150,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox(),
+                  loadingBuilder: (_, child, progress) {
+                    if (progress == null) return child;
+                    return Container(
+                      height: 150,
+                      color: iconColor.withOpacity(0.05),
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    );
+                  },
                 ),
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: iconColor.withOpacity(0.9),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.play_arrow_rounded,
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                  ),
-                ),
-              )
-            else
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: iconColor, size: 24),
               ),
-            const SizedBox(width: 14),
-            // Title
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    material.title ?? material.type,
-                    style: GoogleFonts.tajawal(
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  if (canOpen)
-                    Text(
-                      isVideo ? 'اضغط للمشاهدة' : 'اضغط للفتح',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w500,
+              const SizedBox(height: 12),
+            ],
+            // ── Content Row ─────────────────────────────────────
+            Row(
+              children: [
+                // Thumbnail / Icon
+                if (isVideo && thumbnailUrl != null)
+                  Container(
+                    width: 80,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      image: DecorationImage(
+                        image: NetworkImage(thumbnailUrl),
+                        fit: BoxFit.cover,
                       ),
                     ),
-                ],
-              ),
-            ),
-            // Free/Paid badge
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: (material.isFree ? AppColors.success : AppColors.error)
-                    .withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color:
-                      (material.isFree ? AppColors.success : AppColors.error)
-                          .withOpacity(0.25),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    material.isFree
-                        ? Icons.check_circle_rounded
-                        : Icons.lock_rounded,
-                    color: material.isFree
-                        ? AppColors.success
-                        : AppColors.error,
-                    size: 12,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: iconColor.withOpacity(0.9),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: iconColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: iconColor, size: 24),
                   ),
-                  const SizedBox(width: 3),
-                  Text(
-                    material.isFree ? 'مجاني' : 'مدفوع',
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: material.isFree
-                          ? AppColors.success
-                          : AppColors.error,
+                const SizedBox(width: 14),
+                // Title
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        material.title ?? material.type,
+                        style: GoogleFonts.tajawal(
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      if (canOpen)
+                        Text(
+                          isVideo ? 'اضغط للمشاهدة' : 'اضغط للفتح',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                // Free/Paid badge
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: (material.isFree ? AppColors.success : AppColors.error)
+                        .withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color:
+                          (material.isFree ? AppColors.success : AppColors.error)
+                              .withOpacity(0.25),
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              canOpen
-                  ? Icons.arrow_forward_ios_rounded
-                  : Icons.lock_rounded,
-              size: 16,
-              color: canOpen
-                  ? AppColors.primary.withOpacity(0.6)
-                  : AppColors.error.withOpacity(0.5),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        material.isFree
+                            ? Icons.check_circle_rounded
+                            : Icons.lock_rounded,
+                        color: material.isFree
+                            ? AppColors.success
+                            : AppColors.error,
+                        size: 12,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        material.isFree ? 'مجاني' : 'مدفوع',
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: material.isFree
+                              ? AppColors.success
+                              : AppColors.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  canOpen
+                      ? Icons.arrow_forward_ios_rounded
+                      : Icons.lock_rounded,
+                  size: 16,
+                  color: canOpen
+                      ? AppColors.primary.withOpacity(0.6)
+                      : AppColors.error.withOpacity(0.5),
+                ),
+              ],
             ),
           ],
         ),

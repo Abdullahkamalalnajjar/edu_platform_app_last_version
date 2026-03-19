@@ -75,6 +75,12 @@ class AdminService {
         },
       );
 
+      print('--- getAllStudents ---');
+      print('URL: ${ApiConstants.adminStudents}');
+      print('Status Code: ${response.statusCode}');
+      print('Body: ${response.body}');
+      print('---------------------');
+
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
 
@@ -94,6 +100,7 @@ class AdminService {
         return data
             .map((json) => StudentModel.fromJson(json as Map<String, dynamic>))
             .toList();
+
       } else if (response.statusCode == 401) {
         throw Exception('غير مصرح لك، يُرجى تسجيل الدخول');
       } else {

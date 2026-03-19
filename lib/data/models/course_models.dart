@@ -94,6 +94,7 @@ class CourseMaterial {
   final String? title;
   final bool isFree;
   final int index;
+  final String? coverImageUrl;
 
   CourseMaterial({
     required this.id,
@@ -102,6 +103,7 @@ class CourseMaterial {
     this.title,
     required this.isFree,
     this.index = 0,
+    this.coverImageUrl,
   });
 
   factory CourseMaterial.fromJson(Map<String, dynamic> json) {
@@ -112,6 +114,7 @@ class CourseMaterial {
       title: json['title'],
       isFree: json['isFree'] ?? json['is_free'] ?? false,
       index: json['index'] ?? 0,
+      coverImageUrl: json['CoverMaterialImageUrl'],
     );
   }
 }
@@ -123,6 +126,7 @@ class Lecture {
   final List<CourseMaterial> materials;
   final bool isVisible;
   final int index;
+  final String? coverImageUrl;
 
   Lecture({
     required this.id,
@@ -131,6 +135,7 @@ class Lecture {
     this.materials = const [],
     this.isVisible = true,
     this.index = 0,
+    this.coverImageUrl,
   });
 
   factory Lecture.fromJson(Map<String, dynamic> json) {
@@ -144,9 +149,9 @@ class Lecture {
               .toList()
             ..sort((a, b) => a.index.compareTo(b.index)))
           : [],
-      // Handle both camelCase and snake_case, defaulting to true if neither exists
       isVisible: json['isVisible'] ?? json['is_visible'] ?? true,
       index: json['index'] ?? 0,
+      coverImageUrl: json['coverImage'] ?? json['coverImageUrl'],
     );
   }
 }
@@ -209,10 +214,10 @@ class ExamRequest {
   final int lectureId;
   final String? deadline;
   final int durationInMinutes;
-
   final int type;
   final bool isRandomized;
   final bool isFree;
+  final String? publishedAt;
 
   ExamRequest({
     required this.title,
@@ -222,6 +227,7 @@ class ExamRequest {
     this.type = 1,
     this.isRandomized = true,
     this.isFree = false,
+    this.publishedAt,
   });
 
   Map<String, dynamic> toJson() {
@@ -233,6 +239,7 @@ class ExamRequest {
       'type': type,
       'isRandomized': isRandomized,
       'isFree': isFree,
+      if (publishedAt != null) 'publishedAt': publishedAt,
     };
   }
 }
@@ -387,6 +394,7 @@ class Exam {
   final List<Question> questions;
   final bool isVisible;
   final bool isFree;
+  final DateTime? publishedAt;
 
   Exam({
     required this.id,
@@ -400,6 +408,7 @@ class Exam {
     this.questions = const [],
     this.isVisible = true,
     this.isFree = false,
+    this.publishedAt,
   });
 
   factory Exam.fromJson(Map<String, dynamic> json) {
@@ -423,6 +432,9 @@ class Exam {
           : [],
       isVisible: json['isVisible'] ?? true,
       isFree: json['isFree'] ?? false,
+      publishedAt: json['publishedAt'] != null
+          ? DateTime.tryParse(json['publishedAt'])
+          : null,
     );
   }
 }
@@ -610,6 +622,8 @@ class ExamSubmission {
   final int totalAnswers;
   final int manuallyGradedAnswers;
   final int pendingGradingAnswers;
+  /// Only manual (essay/image) answers pending — excludes auto-graded MCQ
+  final int manualPendingGradingAnswers;
   final String? parentPhoneNumber;
   final String? studentPhoneNumber;
   final String? gradedByName;
@@ -628,12 +642,40 @@ class ExamSubmission {
     required this.totalAnswers,
     required this.manuallyGradedAnswers,
     required this.pendingGradingAnswers,
+    required this.manualPendingGradingAnswers,
     this.parentPhoneNumber,
     this.studentPhoneNumber,
     this.gradedByName,
   });
 
   factory ExamSubmission.fromJson(Map<String, dynamic> json) {
+    final totalAnswers = json['totalAnswers'] ?? 0;
+    final manuallyGradedAnswers = json['manuallyGradedAnswers'] ?? 0;
+    final pendingRaw = json['pendingGradingAnswers'] ?? 0;
+
+    // Prefer explicit backend field if available, otherwise compute:
+    // manualPending = totalAnswers - manuallyGradedAnswers
+    // but never exceed pendingRaw and never go negative
+    final manualPending = json['pendingManualGradingAnswers'] ??
+        (totalAnswers - manuallyGradedAnswers).clamp(0, pendingRaw);
+
+    // Try to get gradedByName from top-level first
+    String? gradedByName = json['gradedByName'] ?? json['teacherName'];
+
+    // If not at top-level, try to extract from studentAnswers
+    if (gradedByName == null || gradedByName.isEmpty) {
+      final answers = json['studentAnswers'] as List?;
+      if (answers != null && answers.isNotEmpty) {
+        for (final answer in answers) {
+          final name = answer['gradedByName'];
+          if (name != null && name.toString().isNotEmpty) {
+            gradedByName = name.toString();
+            break;
+          }
+        }
+      }
+    }
+
     return ExamSubmission(
       studentExamResultId: json['studentExamResultId'] ?? 0,
       studentId: json['studentId'] ?? 0,
@@ -651,12 +693,13 @@ class ExamSubmission {
       submittedAt: json['submittedAt'] != null
           ? DateTime.parse(json['submittedAt'])
           : null,
-      totalAnswers: json['totalAnswers'] ?? 0,
-      manuallyGradedAnswers: json['manuallyGradedAnswers'] ?? 0,
-      pendingGradingAnswers: json['pendingGradingAnswers'] ?? 0,
+      totalAnswers: totalAnswers,
+      manuallyGradedAnswers: manuallyGradedAnswers,
+      pendingGradingAnswers: pendingRaw,
+      manualPendingGradingAnswers: manualPending,
       parentPhoneNumber: json['parentPhoneNumber'],
       studentPhoneNumber: json['studentPhoneNumber'],
-      gradedByName: json['gradedByName'] ?? json['teacherName'],
+      gradedByName: gradedByName,
     );
   }
 }
