@@ -653,39 +653,47 @@ class _LectureDetailsScreenState extends State<LectureDetailsScreen>
       if (widget.onAddMaterial != null)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () async {
-                await widget.onAddMaterial?.call();
-                await _refreshLecture();
-              },
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.08),
-                  border: Border.all(
-                      color: AppColors.primary.withOpacity(0.3),
-                      style: BorderStyle.solid),
+          child: Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              final btnColor = isDark
+                  ? Color.lerp(AppColors.success, Colors.white, 0.3)!
+                  : AppColors.success;
+              return Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () async {
+                    await widget.onAddMaterial?.call();
+                    await _refreshLecture();
+                  },
                   borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.add_circle_outline_rounded,
-                        size: 20, color: AppColors.primary),
-                    const SizedBox(width: 8),
-                    Text(
-                      'إضافة مادة جديدة',
-                      style: GoogleFonts.inter(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: btnColor.withOpacity(isDark ? 0.15 : 0.08),
+                      border: Border.all(
+                          color: btnColor.withOpacity(isDark ? 0.5 : 0.3),
+                          style: BorderStyle.solid),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  ],
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_circle_outline_rounded,
+                            size: 20, color: btnColor),
+                        const SizedBox(width: 8),
+                        Text(
+                          'إضافة مادة جديدة',
+                          style: GoogleFonts.inter(
+                              color: btnColor,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ),
       // Reorder Materials

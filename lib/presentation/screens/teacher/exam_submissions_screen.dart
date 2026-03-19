@@ -151,6 +151,8 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
         _applySearch();
         _isLoading = false;
       });
+      // Enrich submissions with gradedByName from detailed results
+      _enrichSubmissionsWithGradedByName();
     } else {
       setState(() {
         _error = response.message;
@@ -170,9 +172,61 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
         _submissions = response.data ?? [];
         _applySearch();
       });
+      // Enrich submissions with gradedByName from detailed results
+      _enrichSubmissionsWithGradedByName();
     }
     // Also refresh non-submitted stats
     _fetchNonSubmittedStats();
+  }
+
+  /// Fetches detailed exam results for each submission to extract gradedByName.
+  /// The submissions list API doesn't return gradedByName, but the individual
+  /// student score API does (inside studentAnswers).
+  Future<void> _enrichSubmissionsWithGradedByName() async {
+    final examId = widget.examId;
+    if (examId == null) return;
+
+    // Fetch all student results in parallel
+    final futures = _submissions.map((submission) async {
+      try {
+        final result = await _courseService.getStudentExamResult(
+          examId,
+          studentId: submission.studentId,
+        );
+        if (result.succeeded && result.data != null) {
+          // Extract gradedByName from the first answer that has it
+          String? gradedByName;
+          for (final answer in result.data!.studentAnswers) {
+            if (answer.gradedByName != null && answer.gradedByName!.isNotEmpty) {
+              gradedByName = answer.gradedByName;
+              break;
+            }
+          }
+          // Also check if the result itself has gradedByName
+          gradedByName ??= result.data!.gradedByName;
+          return MapEntry(submission.studentId, gradedByName);
+        }
+      } catch (e) {
+        print('Error fetching result for student ${submission.studentId}: $e');
+      }
+      return MapEntry(submission.studentId, null);
+    }).toList();
+
+    final results = await Future.wait(futures);
+    final gradedByNameMap = Map.fromEntries(results.where((e) => e.value != null).map((e) => MapEntry(e.key, e.value!)));
+
+    if (mounted && gradedByNameMap.isNotEmpty) {
+      setState(() {
+        _submissions = _submissions.map((s) {
+          final name = gradedByNameMap[s.studentId];
+          if (name != null && (s.gradedByName == null || s.gradedByName!.isEmpty)) {
+            return s.copyWith(gradedByName: name);
+          }
+          return s;
+        }).toList();
+        _applySearch();
+      });
+    }
   }
 
   Future<void> _handleAutoSubmit() async {

@@ -2838,6 +2838,7 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
     final result = _studentAnswerResults[question.id];
     if (result == null) return const SizedBox.shrink();
 
+    // All questions get editable grading fields
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2950,22 +2951,6 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
         final result = _studentAnswerResults[q.id];
         if (result == null) continue;
 
-        // ── MCQ: auto-grade on backend by comparing answers ────────
-        // Do NOT send MCQ to the manual grading API.
-        // The backend's correctAllExams / auto-grade handles MCQ.
-        // We only send truly manual (essay/image) questions.
-
-        final bool isMCQ = q.answerType != 'TextAnswer' &&
-            q.answerType != 'ImageAnswer' &&
-            q.questionType != 'Image';
-
-        if (isMCQ) {
-          // Skip — MCQ is auto-graded server-side
-          print('⏭ Skipping MCQ question ${q.id} (auto-graded by server)');
-          continue;
-        }
-
-        // ── Essay / Image: manual grading ──────────────────────────
         final points = _teacherPoints[q.id] ?? result.pointsEarned ?? 0.0;
         final feedback = _teacherFeedback[q.id] ?? result.feedback ?? '';
 
@@ -2973,7 +2958,7 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
             result.studentAnswerId != 0 ? result.studentAnswerId : q.id;
 
         print(
-          '✏️ Grading Essay: ID=$idToSend, QuestionID=${q.id}, Points=$points',
+          '✏️ Grading: ID=$idToSend, QuestionID=${q.id}, Type=${q.answerType}, Points=$points',
         );
         gradedAnswers.add(
           GradedAnswerRequest(
@@ -3100,11 +3085,13 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
           children: [
             Icon(Icons.check_circle_rounded, color: AppColors.success),
             const SizedBox(width: 12),
-            Text(
-              'تم التصحيح بنجاح',
-              style: GoogleFonts.outfit(
-                color: Theme.of(context).textTheme.bodyLarge?.color,
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                'تم التصحيح بنجاح',
+                style: GoogleFonts.outfit(
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],

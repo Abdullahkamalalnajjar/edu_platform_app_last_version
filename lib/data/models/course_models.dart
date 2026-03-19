@@ -702,6 +702,46 @@ class ExamSubmission {
       gradedByName: gradedByName,
     );
   }
+
+  ExamSubmission copyWith({
+    int? studentExamResultId,
+    int? studentId,
+    String? studentName,
+    String? studentEmail,
+    int? examId,
+    String? examTitle,
+    double? currentTotalScore,
+    int? maxScore,
+    bool? isFinished,
+    DateTime? submittedAt,
+    int? totalAnswers,
+    int? manuallyGradedAnswers,
+    int? pendingGradingAnswers,
+    int? manualPendingGradingAnswers,
+    String? parentPhoneNumber,
+    String? studentPhoneNumber,
+    String? gradedByName,
+  }) {
+    return ExamSubmission(
+      studentExamResultId: studentExamResultId ?? this.studentExamResultId,
+      studentId: studentId ?? this.studentId,
+      studentName: studentName ?? this.studentName,
+      studentEmail: studentEmail ?? this.studentEmail,
+      examId: examId ?? this.examId,
+      examTitle: examTitle ?? this.examTitle,
+      currentTotalScore: currentTotalScore ?? this.currentTotalScore,
+      maxScore: maxScore ?? this.maxScore,
+      isFinished: isFinished ?? this.isFinished,
+      submittedAt: submittedAt ?? this.submittedAt,
+      totalAnswers: totalAnswers ?? this.totalAnswers,
+      manuallyGradedAnswers: manuallyGradedAnswers ?? this.manuallyGradedAnswers,
+      pendingGradingAnswers: pendingGradingAnswers ?? this.pendingGradingAnswers,
+      manualPendingGradingAnswers: manualPendingGradingAnswers ?? this.manualPendingGradingAnswers,
+      parentPhoneNumber: parentPhoneNumber ?? this.parentPhoneNumber,
+      studentPhoneNumber: studentPhoneNumber ?? this.studentPhoneNumber,
+      gradedByName: gradedByName ?? this.gradedByName,
+    );
+  }
 }
 
 class GradedAnswerRequest {
@@ -728,16 +768,13 @@ class GradedAnswerRequest {
 class GradeExamRequest {
   final int studentExamResultId;
   final List<GradedAnswerRequest> gradedAnswers;
-  final String command;
 
   GradeExamRequest({
     required this.studentExamResultId,
     required this.gradedAnswers,
-    this.command = 'GradeExam',
   });
 
   Map<String, dynamic> toJson() => {
-        'command': command,
         'studentExamResultId': studentExamResultId,
         'gradedAnswers': gradedAnswers.map((x) => x.toJson()).toList(),
       };
@@ -749,6 +786,7 @@ class GradeExamResponse {
   final double newTotalScore;
   final double pointsFromManualGrading;
   final String message;
+  final List<GradedAnswerResult> gradedAnswersDetails;
 
   GradeExamResponse({
     required this.studentExamResultId,
@@ -756,6 +794,7 @@ class GradeExamResponse {
     required this.newTotalScore,
     required this.pointsFromManualGrading,
     required this.message,
+    required this.gradedAnswersDetails,
   });
 
   factory GradeExamResponse.fromJson(Map<String, dynamic> json) {
@@ -766,6 +805,49 @@ class GradeExamResponse {
       pointsFromManualGrading:
           (json['pointsFromManualGrading'] ?? 0).toDouble(),
       message: json['message'] ?? '',
+      gradedAnswersDetails: json['gradedAnswersDetails'] != null
+          ? (json['gradedAnswersDetails'] as List)
+              .map((e) => GradedAnswerResult.fromJson(e))
+              .toList()
+          : [],
+    );
+  }
+}
+
+class GradedAnswerResult {
+  final int studentAnswerId;
+  final int questionId;
+  final String questionContent;
+  final double pointsEarned;
+  final bool isCorrect;
+  final String? feedback;
+  final String? gradedByUserName;
+  final String? questionType;
+  final String? answerType;
+
+  GradedAnswerResult({
+    required this.studentAnswerId,
+    required this.questionId,
+    required this.questionContent,
+    required this.pointsEarned,
+    required this.isCorrect,
+    this.feedback,
+    this.gradedByUserName,
+    this.questionType,
+    this.answerType,
+  });
+
+  factory GradedAnswerResult.fromJson(Map<String, dynamic> json) {
+    return GradedAnswerResult(
+      studentAnswerId: json['studentAnswerId'] ?? 0,
+      questionId: json['questionId'] ?? 0,
+      questionContent: json['questionContent'] ?? '',
+      pointsEarned: (json['pointsEarned'] ?? 0).toDouble(),
+      isCorrect: json['isCorrect'] ?? false,
+      feedback: json['feedback'],
+      gradedByUserName: json['gradedByUserName'],
+      questionType: json['questionType'],
+      answerType: json['answerType'],
     );
   }
 }

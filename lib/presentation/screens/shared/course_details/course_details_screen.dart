@@ -1025,7 +1025,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                           child: _buildActionButton(
                             label: 'إضافة مادة',
                             icon: Icons.add_circle_outline_rounded,
-                            color: accent,
+                            color: AppColors.success,
                             onTap: () => _showAddMaterialDialog(lecture, index),
                           ),
                         ),
@@ -1129,6 +1129,10 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
     required Color color,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Use brighter variant of color in dark mode for better visibility
+    final displayColor = isDark ? Color.lerp(color, Colors.white, 0.3)! : color;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1137,18 +1141,18 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.08),
+            color: displayColor.withOpacity(isDark ? 0.15 : 0.08),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.3)),
+            border: Border.all(color: displayColor.withOpacity(isDark ? 0.5 : 0.3)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 16, color: color),
+              Icon(icon, size: 16, color: displayColor),
               const SizedBox(width: 6),
               Text(
                 label,
-                style: GoogleFonts.inter(color: color, fontWeight: FontWeight.w600, fontSize: 12),
+                style: GoogleFonts.inter(color: displayColor, fontWeight: FontWeight.w600, fontSize: 12),
               ),
             ],
           ),
@@ -3394,7 +3398,13 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
   Future<void> _showCreateExamDialog(Lecture lecture) async {
     final titleController = TextEditingController();
     final durationController = TextEditingController();
-    DateTime? selectedDeadline;
+    // Default deadline: one year from now
+    DateTime? selectedDeadline = DateTime(
+      DateTime.now().year + 1,
+      DateTime.now().month,
+      DateTime.now().day,
+      23, 59,
+    );
     DateTime? selectedPublishedAt;
     int selectedType = 1; // 1 = Exam, 2 = Assignment
     bool isRandomized = true;
@@ -3565,7 +3575,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                       context: context,
                       initialDate: DateTime.now(),
                       firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                      lastDate: DateTime.now().add(const Duration(days: 730)),
                       builder: (context, child) {
                         return Theme(
                           data: Theme.of(context).copyWith(
