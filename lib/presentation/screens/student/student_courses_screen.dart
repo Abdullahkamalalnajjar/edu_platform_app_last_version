@@ -98,7 +98,7 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: const Color(0xFF0A0A0A),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -106,14 +106,16 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor.withOpacity(0.2),
+            color: Colors.white.withOpacity(0.08),
             shape: BoxShape.circle,
-            border: Border.all(color: Theme.of(context).dividerColor),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
           ),
           child: IconButton(
             icon: Icon(
               Icons.arrow_back_ios_new_rounded,
-              color: Theme.of(context).iconTheme.color,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Theme.of(context).iconTheme.color,
               size: 20,
             ),
             onPressed: () => Navigator.pop(context),
@@ -122,7 +124,9 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
         title: Text(
           widget.subjectName,
           style: GoogleFonts.outfit(
-            color: Theme.of(context).textTheme.titleLarge?.color,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Theme.of(context).textTheme.titleLarge?.color,
             fontWeight: FontWeight.w600,
             fontSize: 20,
           ),
@@ -132,21 +136,63 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
       ),
       body: Stack(
         children: [
-          // Background container removed to use Scaffold background
-          Container(color: Theme.of(context).scaffoldBackgroundColor),
+          // Deep black background
+          Container(color: const Color(0xFF0A0A0A)),
 
-          // Subtle Red Glow (Static)
+          // Top-right red glow
           Positioned(
-            top: -100,
-            right: -100,
+            top: -120,
+            right: -80,
             child: Container(
-              width: 300,
-              height: 300,
+              width: 350,
+              height: 350,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    Theme.of(context).primaryColor.withOpacity(0.2),
+                    AppColors.primary.withOpacity(0.25),
+                    AppColors.primaryDark.withOpacity(0.08),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.5, 1.0],
+                ),
+              ),
+            ),
+          ),
+
+          // Bottom-left red glow
+          Positioned(
+            bottom: -150,
+            left: -100,
+            child: Container(
+              width: 400,
+              height: 400,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.primaryDark.withOpacity(0.15),
+                    AppColors.primary.withOpacity(0.05),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.4, 1.0],
+                ),
+              ),
+            ),
+          ),
+
+          // Center-right subtle glow
+          Positioned(
+            top: MediaQuery.of(context).size.height * 0.4,
+            right: -60,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.accent.withOpacity(0.1),
                     Colors.transparent,
                   ],
                 ),

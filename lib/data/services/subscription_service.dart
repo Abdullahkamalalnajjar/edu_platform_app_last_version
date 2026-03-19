@@ -117,6 +117,59 @@ class SubscriptionService {
     }
   }
 
+  Future<ApiResponse<List<CourseSubscription>>> getStudentPendingSubscriptions(
+    int studentId,
+  ) async {
+    try {
+      final token = await _tokenService.getToken();
+      final response = await http.get(
+        Uri.parse(
+          '$baseUrl/course-subscriptions/student/$studentId/status/Pending',
+        ),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      print('--- Get Student Pending Subscriptions ---');
+      print('Status Code: ${response.statusCode}');
+      print('Body: ${response.body}');
+
+      final jsonResponse = json.decode(response.body);
+
+      if (response.statusCode == 200 && jsonResponse['succeeded'] == true) {
+        final List<dynamic> data = jsonResponse['data'] ?? [];
+
+        final subscriptions = data
+            .map((item) => CourseSubscription.fromJson(item))
+            .toList();
+
+        return ApiResponse<List<CourseSubscription>>(
+          statusCode: response.statusCode,
+          succeeded: true,
+          message: jsonResponse['message'] ?? 'Successfully',
+          data: subscriptions,
+        );
+      } else {
+        return ApiResponse<List<CourseSubscription>>(
+          statusCode: response.statusCode,
+          succeeded: false,
+          message: jsonResponse['message'] ?? 'Failed to fetch pending subscriptions',
+          data: [],
+        );
+      }
+    } catch (e) {
+      print('Error fetching student pending subscriptions: $e');
+      return ApiResponse<List<CourseSubscription>>(
+        statusCode: 0,
+        succeeded: false,
+        message: 'Error: $e',
+        data: [],
+      );
+    }
+  }
+
   Future<ApiResponse<void>> updateSubscriptionStatus({
     required int subscriptionId,
     required String status, // "Approved" or "Rejected"

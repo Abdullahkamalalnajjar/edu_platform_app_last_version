@@ -87,7 +87,7 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
     final studentId = await _tokenService.getUserId();
     if (studentId == null) return;
 
-    // Get all approved subscriptions for this student
+    // Get approved subscriptions
     final approvedResponse = await _subscriptionService.getStudentSubscriptions(
       studentId,
     );
@@ -97,11 +97,21 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
         approvedResponse.data != null) {
       setState(() {
         _subscribedCourseIds = approvedResponse.data!
-            .where((sub) => sub.status == 'Approved')
             .map((sub) => sub.courseId)
             .toSet();
-        _pendingCourseIds = approvedResponse.data!
-            .where((sub) => sub.status == 'Pending')
+      });
+    }
+
+    // Get pending subscriptions
+    final pendingResponse = await _subscriptionService.getStudentPendingSubscriptions(
+      studentId,
+    );
+
+    if (mounted &&
+        pendingResponse.succeeded &&
+        pendingResponse.data != null) {
+      setState(() {
+        _pendingCourseIds = pendingResponse.data!
             .map((sub) => sub.courseId)
             .toSet();
       });
@@ -275,7 +285,7 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
 
     return Scaffold(
       // ... existing scaffold properties ...
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: const Color(0xFF0A0A0A),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         // ... existing app bar ...
@@ -762,22 +772,24 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Image Section (Pure Image, No Text)
-              Container(
-                height: 180,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).scaffoldBackgroundColor,
+              // 1. Image Section (16:9 aspect ratio)
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                  ),
+                  child:
+                      (courseImage != null && courseImage.toString().isNotEmpty)
+                          ? Image.network(
+                              courseImage.toString(),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  _buildImagePlaceholder(),
+                            )
+                          : _buildImagePlaceholder(),
                 ),
-                child:
-                    (courseImage != null && courseImage.toString().isNotEmpty)
-                        ? Image.network(
-                            courseImage.toString(),
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                _buildImagePlaceholder(),
-                          )
-                        : _buildImagePlaceholder(),
               ),
 
               // 2. Info Section (Below Image)
@@ -797,7 +809,8 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
                         height: 1.2,
                       ),
                     ),
-                    if ((course['description'] as String?)?.isNotEmpty == true) ...[
+                    if ((course['description'] as String?)?.isNotEmpty ==
+                        true) ...[
                       const SizedBox(height: 6),
                       Text(
                         course['description'],
@@ -805,7 +818,11 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.inter(
                           fontSize: 13,
-                          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                          color: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.color
+                              ?.withOpacity(0.7),
                           height: 1.4,
                         ),
                       ),
@@ -1051,9 +1068,9 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Theme.of(context).scaffoldBackgroundColor,
-                Theme.of(context).cardColor,
-                Theme.of(context).scaffoldBackgroundColor,
+                const Color(0xFF0A0A0A),
+                const Color(0xFF1A0A0A),
+                const Color(0xFF0A0A0A),
               ],
               stops: [
                 0.0,
@@ -1070,6 +1087,7 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
   Widget _buildDecorativeOrbs(Size size) {
     return Stack(
       children: [
+        // Top-right red glow
         Positioned(
           top: -size.height * 0.1,
           right: -size.width * 0.2,
@@ -1088,9 +1106,42 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.meshGold.withOpacity(0.15),
+                        AppColors.primary.withOpacity(0.25),
+                        AppColors.primaryDark.withOpacity(0.08),
                         Colors.transparent,
                       ],
+                      stops: const [0.0, 0.5, 1.0],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        // Bottom-left red glow
+        Positioned(
+          bottom: -size.height * 0.15,
+          left: -size.width * 0.2,
+          child: AnimatedBuilder(
+            animation: _backgroundController,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(
+                  -15 * math.cos(_backgroundController.value * 2 * math.pi),
+                  -15 * math.sin(_backgroundController.value * 2 * math.pi),
+                ),
+                child: Container(
+                  width: size.width * 0.7,
+                  height: size.width * 0.7,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        AppColors.primaryDark.withOpacity(0.18),
+                        AppColors.primary.withOpacity(0.05),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.0, 0.4, 1.0],
                     ),
                   ),
                 ),
