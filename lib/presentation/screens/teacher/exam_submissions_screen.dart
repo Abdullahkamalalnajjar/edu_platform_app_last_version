@@ -117,9 +117,11 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
       // We might need to handle the display separately or merge them.
     }
 
-    // Apply pending filter — only count actual manual (essay) questions
+    // Apply pending filter — show students not yet graded by teacher
     if (_filterPendingOnly) {
-      baseList = baseList.where((s) => _manualPending(s) > 0).toList();
+      baseList = baseList
+          .where((s) => s.gradedByName == null || s.gradedByName!.isEmpty)
+          .toList();
     }
 
     if (_searchQuery.isEmpty) {
@@ -197,7 +199,8 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
           // Extract gradedByName from the first answer that has it
           String? gradedByName;
           for (final answer in result.data!.studentAnswers) {
-            if (answer.gradedByName != null && answer.gradedByName!.isNotEmpty) {
+            if (answer.gradedByName != null &&
+                answer.gradedByName!.isNotEmpty) {
               gradedByName = answer.gradedByName;
               break;
             }
@@ -213,13 +216,16 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
     }).toList();
 
     final results = await Future.wait(futures);
-    final gradedByNameMap = Map.fromEntries(results.where((e) => e.value != null).map((e) => MapEntry(e.key, e.value!)));
+    final gradedByNameMap = Map.fromEntries(results
+        .where((e) => e.value != null)
+        .map((e) => MapEntry(e.key, e.value!)));
 
     if (mounted && gradedByNameMap.isNotEmpty) {
       setState(() {
         _submissions = _submissions.map((s) {
           final name = gradedByNameMap[s.studentId];
-          if (name != null && (s.gradedByName == null || s.gradedByName!.isEmpty)) {
+          if (name != null &&
+              (s.gradedByName == null || s.gradedByName!.isEmpty)) {
             return s.copyWith(gradedByName: name);
           }
           return s;
@@ -485,8 +491,9 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
     final totalEnrolled =
         _nonSubmittedResponse?.totalEnrolledStudents ?? _submissions.length;
     final nonSubmitted = _nonSubmittedResponse?.nonSubmittedCount ?? 0;
-    final pendingCount =
-        _submissions.where((s) => _manualPending(s) > 0).length;
+    final pendingCount = _submissions
+        .where((s) => s.gradedByName == null || s.gradedByName!.isEmpty)
+        .length;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -922,7 +929,8 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
   }
 
   Widget _buildSubmissionCard(ExamSubmission submission) {
-    print('📋 Submission: ${submission.studentName} | gradedByName: "${submission.gradedByName}" | manuallyGraded: ${submission.manuallyGradedAnswers} | pending: ${submission.pendingGradingAnswers}');
+    print(
+        '📋 Submission: ${submission.studentName} | gradedByName: "${submission.gradedByName}" | manuallyGraded: ${submission.manuallyGradedAnswers} | pending: ${submission.pendingGradingAnswers}');
     String submittedAt = 'غير معروف';
     if (submission.submittedAt != null) {
       final dt = submission.submittedAt!.toLocal();
@@ -1157,59 +1165,22 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
                 runSpacing: 8,
                 children: [
                   _buildStatusBadge(submission),
-                  if (widget.examId != null)
-                    InkWell(
-                      onTap: () => _handleCorrectStudent(submission.studentId),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: AppColors.primary.withOpacity(0.5),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.check_circle_outline,
-                              size: 14,
-                              color: AppColors.primary,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'تصحيح',
-                              style: GoogleFonts.inter(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
           ],
         ),
         trailing: Text(
-              formatScoreWithMax(
-                submission.currentTotalScore,
-                submission.maxScore,
-              ),
-              style: GoogleFonts.outfit(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: AppColors.primary,
-              ),
-            ),
+          formatScoreWithMax(
+            submission.currentTotalScore,
+            submission.maxScore,
+          ),
+          style: GoogleFonts.outfit(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: AppColors.primary,
+          ),
+        ),
         onTap: () {
           Navigator.push(
             context,
@@ -1230,8 +1201,8 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
   }
 
   Widget _buildStatusBadge(ExamSubmission submission) {
-    final hasGradedBy = submission.gradedByName != null &&
-        submission.gradedByName!.isNotEmpty;
+    final hasGradedBy =
+        submission.gradedByName != null && submission.gradedByName!.isNotEmpty;
 
     if (hasGradedBy) {
       return Container(

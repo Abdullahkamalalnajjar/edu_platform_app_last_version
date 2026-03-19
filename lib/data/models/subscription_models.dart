@@ -6,6 +6,7 @@ class CourseSubscription {
   final String studentName;
   final String studentEmail;
   final String studentPhone;
+  final String parentPhone;
   final int courseId;
   final String courseName;
   final String teacherName;
@@ -21,6 +22,7 @@ class CourseSubscription {
     required this.studentName,
     this.studentEmail = '',
     this.studentPhone = '',
+    this.parentPhone = '',
     required this.courseId,
     required this.courseName,
     required this.teacherName,
@@ -32,12 +34,15 @@ class CourseSubscription {
   });
 
   factory CourseSubscription.fromJson(Map<String, dynamic> json) {
+    print('🔍 Subscription JSON keys: ${json.keys.toList()}');
+    print('🔍 studentEmail: ${json['studentEmail']} | email: ${json['email']} | studentPhone: ${json['studentPhone']} | phoneNumber: ${json['phoneNumber']}');
     return CourseSubscription(
       courseSubscriptionId: json['courseSubscriptionId'] ?? 0,
       studentId: json['studentId'] ?? 0,
       studentName: json['studentName'] ?? '',
       studentEmail: json['studentEmail'] ?? json['email'] ?? '',
-      studentPhone: json['studentPhone'] ?? json['phoneNumber'] ?? json['parentPhoneNumber'] ?? '',
+      studentPhone: json['studentPhone'] ?? json['phoneNumber'] ?? json['studentPhoneNumber'] ?? '',
+      parentPhone: json['parentPhoneNumber'] ?? json['parentPhone'] ?? '',
       courseId: json['courseId'] ?? 0,
       courseName: json['courseName'] ?? '',
       teacherName: json['teacherName'] ?? '',

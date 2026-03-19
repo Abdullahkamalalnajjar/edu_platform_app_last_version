@@ -659,28 +659,29 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                   horizontalPadding, 12, horizontalPadding, 0),
               sliver: SliverToBoxAdapter(
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
                       width: 4,
-                      height: 20,
+                      height: 24,
                       decoration: BoxDecoration(
                         color: Theme.of(context).primaryColor,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Text(
                       'المحاضرات',
-                      style: GoogleFonts.outfit(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
+                      style: GoogleFonts.tajawal(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
                         color: Theme.of(context).textTheme.bodyLarge?.color,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
+                          horizontal: 10, vertical: 3),
                       decoration: BoxDecoration(
                         color:
                             Theme.of(context).primaryColor.withOpacity(0.1),
@@ -689,7 +690,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                       child: Text(
                         '${_lectures.length}',
                         style: GoogleFonts.outfit(
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: Theme.of(context).primaryColor,
                         ),
@@ -977,7 +978,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                       Icon(Icons.menu_book_rounded, size: 14, color: accent),
                       const SizedBox(width: 6),
                       Text(
-                        'المواد',
+                        'الفيديوهات والملفات',
                         style: GoogleFonts.outfit(
                           fontSize: 13, fontWeight: FontWeight.w700,
                           color: Theme.of(context).textTheme.bodyLarge?.color,
@@ -1053,7 +1054,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                       Icon(Icons.quiz_rounded, size: 14, color: Colors.orange),
                       const SizedBox(width: 6),
                       Text(
-                        'الاختبارات',
+                        'الاختبارات والواجبات',
                         style: GoogleFonts.outfit(
                           fontSize: 13, fontWeight: FontWeight.w700,
                           color: Theme.of(context).textTheme.bodyLarge?.color,
@@ -1408,56 +1409,66 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
       case 'Video':
         iconColor = const Color(0xFFFF5252);
         final videoId = YoutubePlayer.convertUrlToId(material.fileUrl);
-        // Use hqdefault for better quality than default, but 0.jpg is also an option.
-        // standard format: https://img.youtube.com/vi/<insert-youtube-video-id-here>/hqdefault.jpg
         final thumbnailUrl = videoId != null
             ? 'https://img.youtube.com/vi/$videoId/mqdefault.jpg'
             : '';
 
-        leadingIcon = Container(
-          width: 80, // Wider for 16:9 thumbnail ratio
-          height: 45,
-          decoration: BoxDecoration(
-            color: const Color(0xFF2A1C1C),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
-            image: thumbnailUrl.isNotEmpty
-                ? DecorationImage(
-                    image: NetworkImage(thumbnailUrl),
-                    fit: BoxFit.cover,
-                    onError: (exception, stackTrace) {
-                      // Fallback is handled by the child below if image fails to render?
-                      // Actually DecorationImage doesn't easily support fallback widget.
-                      // We will rely on effective thumbnail urls.
-                    },
-                  )
-                : null,
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // Dark overlay for better text/icon visibility if image is bright
-              if (thumbnailUrl.isNotEmpty)
+        leadingIcon = ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF2A1C1C),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              image: thumbnailUrl.isNotEmpty
+                  ? DecorationImage(
+                      image: NetworkImage(thumbnailUrl),
+                      fit: BoxFit.cover,
+                      onError: (exception, stackTrace) {},
+                    )
+                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: iconColor.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (thumbnailUrl.isNotEmpty)
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.black.withOpacity(0.3),
+                    ),
+                  ),
                 Container(
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    color: Colors.black.withOpacity(0.3),
+                    color: const Color(0xFFFF5252).withOpacity(0.9),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow_rounded,
+                    color: Colors.white,
+                    size: 32,
                   ),
                 ),
-              // Play Icon Overlay
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF5252).withOpacity(0.9),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.play_arrow_rounded,
-                  color: Colors.white,
-                  size: 16,
-                ),
-              ),
-            ],
+              ],
+            ),
+            ),
           ),
         );
         typeLabel = 'محاضرة فيديو';
@@ -1465,47 +1476,50 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
       case 'Pdf':
         iconColor = const Color(0xFFE57373);
         leadingIcon = Container(
-          padding: const EdgeInsets.all(6), // Reduced from 8
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: iconColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: iconColor.withOpacity(0.2)),
           ),
           child: Icon(
             Icons.picture_as_pdf_rounded,
             color: iconColor,
-            size: 20,
-          ), // Reduced from 24
+            size: 28,
+          ),
         );
         typeLabel = getFileName(material.fileUrl).replaceAll('%20', ' ');
         break;
       case 'Homework':
         iconColor = const Color(0xFF64B5F6);
         leadingIcon = Container(
-          padding: const EdgeInsets.all(6), // Reduced from 8
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: iconColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: iconColor.withOpacity(0.2)),
           ),
           child: Icon(
             Icons.assignment_rounded,
             color: iconColor,
-            size: 20,
-          ), // Reduced from 24
+            size: 28,
+          ),
         );
         typeLabel = getFileName(material.fileUrl).replaceAll('%20', ' ');
         break;
       default:
         iconColor = AppColors.textSecondary;
         leadingIcon = Container(
-          padding: const EdgeInsets.all(6), // Reduced from 8
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: iconColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: iconColor.withOpacity(0.2)),
           ),
           child: Icon(
             Icons.insert_drive_file_rounded,
             color: iconColor,
-            size: 20, // Reduced from 24
+            size: 28,
           ),
         );
         typeLabel = getFileName(material.fileUrl).replaceAll('%20', ' ');
@@ -1615,70 +1629,78 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
               ],
             ),
             const SizedBox(height: 12),
+            // ── Video thumbnail (full width, above row) ──────────
+            if (material.type == 'Video') ...[
+              leadingIcon,
+              const SizedBox(height: 10),
+            ],
             Row(
               children: [
-                // Leading Icon/Thumbnail
-                leadingIcon,
-                const SizedBox(width: 12),
+                // Leading Icon (non-video only)
+                if (material.type != 'Video') ...[
+                  leadingIcon,
+                  const SizedBox(width: 12),
+                ],
 
                 // Subtitle
                 if (widget.isTeacher ||
                     material.isFree ||
                     _hasApprovedSubscription)
                   Text(
-                    material.type == 'Video' ? 'اضغط للمشاهدة' : 'اضغط للفتح',
+                    material.type == 'Video' ? 'اضغط للمشاهدة ▶' : 'اضغط للفتح',
                     style: GoogleFonts.inter(
-                      fontSize: 11, // Reduced from 12
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                      color: const Color(0xFF00897B),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
 
                 const Spacer(),
 
-                // Trailing - Free/Paid Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: material.isFree
-                        ? AppColors.success.withOpacity(0.1)
-                        : AppColors.error.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: material.isFree
-                          ? AppColors.success.withOpacity(0.3)
-                          : AppColors.error.withOpacity(0.3),
+                // Trailing - Free/Paid Badge (hide 'مدفوع' for subscribed students & teachers)
+                if (material.isFree || (!widget.isTeacher && !_hasApprovedSubscription))
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        material.isFree
-                            ? Icons.check_circle_rounded
-                            : Icons.lock_rounded,
+                    decoration: BoxDecoration(
+                      color: material.isFree
+                          ? AppColors.success.withOpacity(0.1)
+                          : AppColors.error.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
                         color: material.isFree
-                            ? AppColors.success
-                            : AppColors.error,
-                        size: 14,
+                            ? AppColors.success.withOpacity(0.3)
+                            : AppColors.error.withOpacity(0.3),
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        material.isFree ? 'مجاني' : 'مدفوع',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          material.isFree
+                              ? Icons.check_circle_rounded
+                              : Icons.lock_rounded,
                           color: material.isFree
                               ? AppColors.success
                               : AppColors.error,
+                          size: 14,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 6),
+                        Text(
+                          material.isFree ? 'مجاني' : 'مدفوع',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: material.isFree
+                                ? AppColors.success
+                                : AppColors.error,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
               ],
             ),
           ],
@@ -1896,6 +1918,37 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                             ],
                           ),
                         ),
+                        // Deadline row
+                        if (exam.deadline != null) ...[
+                          const SizedBox(height: 6),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: AlignmentDirectional.centerStart,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.event_rounded,
+                                  size: 14,
+                                  color: DateTime.now().isAfter(exam.deadline!)
+                                      ? AppColors.error
+                                      : const Color(0xFF00897B),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'الموعد النهائي: ${_formatDeadline(exam.deadline!)}',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    color: DateTime.now().isAfter(exam.deadline!)
+                                        ? AppColors.error
+                                        : const Color(0xFF00897B),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -3718,22 +3771,37 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
     return AnimatedBuilder(
       animation: _backgroundController,
       builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).scaffoldBackgroundColor,
-                Theme.of(context).cardColor,
-                Theme.of(context).scaffoldBackgroundColor,
-              ],
-              stops: [
-                0.0,
-                0.5 + 0.1 * math.sin(_backgroundController.value * 2 * math.pi),
-                1.0,
-              ],
-            ),
+            gradient: isDark
+                ? RadialGradient(
+                    center: Alignment(
+                      0.3 * math.sin(_backgroundController.value * 2 * math.pi),
+                      -0.3 + 0.2 * math.cos(_backgroundController.value * 2 * math.pi),
+                    ),
+                    radius: 1.2,
+                    colors: [
+                      const Color(0xFF2A0A0A),
+                      const Color(0xFF1A0505),
+                      const Color(0xFF0D0D0D),
+                    ],
+                    stops: const [0.0, 0.5, 1.0],
+                  )
+                : LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Theme.of(context).scaffoldBackgroundColor,
+                      Theme.of(context).cardColor,
+                      Theme.of(context).scaffoldBackgroundColor,
+                    ],
+                    stops: [
+                      0.0,
+                      0.5 + 0.1 * math.sin(_backgroundController.value * 2 * math.pi),
+                      1.0,
+                    ],
+                  ),
           ),
         );
       },
@@ -3741,6 +3809,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
   }
 
   Widget _buildDecorativeOrbs(Size size) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Stack(
       children: [
         Positioned(
@@ -3761,7 +3830,8 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.meshGold.withOpacity(0.15),
+                        (isDark ? AppColors.primary : AppColors.meshGold)
+                            .withOpacity(isDark ? 0.2 : 0.15),
                         Colors.transparent,
                       ],
                     ),

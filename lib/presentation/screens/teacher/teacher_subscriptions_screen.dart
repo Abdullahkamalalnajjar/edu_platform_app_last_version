@@ -128,7 +128,9 @@ class _TeacherSubscriptionsScreenState
         return sub.studentName.toLowerCase().contains(q) ||
             sub.studentEmail.toLowerCase().contains(q) ||
             sub.studentPhone.contains(q) ||
-            sub.courseName.toLowerCase().contains(q);
+            sub.parentPhone.contains(q) ||
+            sub.courseName.toLowerCase().contains(q) ||
+            sub.studentId.toString().contains(q);
       }).toList();
     }
 
@@ -168,6 +170,7 @@ class _TeacherSubscriptionsScreenState
             studentName: subscription.studentName,
             studentEmail: subscription.studentEmail,
             studentPhone: subscription.studentPhone,
+            parentPhone: subscription.parentPhone,
             courseId: subscription.courseId,
             courseName: subscription.courseName,
             teacherName: subscription.teacherName,
@@ -409,6 +412,9 @@ class _TeacherSubscriptionsScreenState
             courseSubscriptionId: sub.courseSubscriptionId,
             studentId: sub.studentId,
             studentName: sub.studentName,
+            studentEmail: sub.studentEmail,
+            studentPhone: sub.studentPhone,
+            parentPhone: sub.parentPhone,
             courseId: sub.courseId,
             courseName: sub.courseName,
             teacherName: sub.teacherName,
@@ -535,105 +541,112 @@ class _TeacherSubscriptionsScreenState
           ),
         ],
       ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          key: PageStorageKey('course_${course.courseId}'),
-          initiallyExpanded: widget.initialCourseId != null
-              ? widget.initialCourseId == course.courseId
-              : false,
-          tilePadding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
-          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          leading: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(Icons.school_rounded,
-                color: Colors.white, size: 22),
-          ),
-          title: Text(
-            course.courseName,
-            style: GoogleFonts.outfit(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).textTheme.bodyLarge?.color,
-            ),
-          ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Row(
-              children: [
-                Icon(Icons.people_alt_outlined,
-                    size: 13,
-                    color: AppColors.primary.withOpacity(0.8)),
-                const SizedBox(width: 4),
-                Text(
-                  '${subscriptions.length} طالب',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
+      child: Column(
+        children: [
+          Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              key: PageStorageKey('course_${course.courseId}'),
+              initiallyExpanded: widget.initialCourseId != null
+                  ? widget.initialCourseId == course.courseId
+                  : false,
+              tilePadding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              leading: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(14),
                 ),
-              ],
+                child: const Icon(Icons.school_rounded,
+                    color: Colors.white, size: 22),
+              ),
+              title: Text(
+                course.courseName,
+                style: GoogleFonts.outfit(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  children: [
+                    Icon(Icons.people_alt_outlined,
+                        size: 13,
+                        color: AppColors.primary.withOpacity(0.8)),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${subscriptions.length} طالب',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              children: subscriptions
+                  .map((sub) => _buildStudentItem(sub))
+                  .toList(),
             ),
           ),
-          // "Accept All" button shown only when there are pending subs
-          trailing: pendingCount > 0
-              ? Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: GestureDetector(
-                    onTap: isApprovingAll
-                        ? null
-                        : () => _approveAllForCourse(subscriptions),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 7),
-                      decoration: BoxDecoration(
-                        color: isApprovingAll
-                            ? AppColors.success.withOpacity(0.08)
-                            : AppColors.success.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: AppColors.success.withOpacity(0.5)),
-                      ),
-                      child: isApprovingAll
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
+          // "Accept All" button — outside ExpansionTile, always visible
+          if (pendingCount > 0)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: SizedBox(
+                width: double.infinity,
+                child: GestureDetector(
+                  onTap: isApprovingAll
+                      ? null
+                      : () => _approveAllForCourse(subscriptions),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isApprovingAll
+                          ? AppColors.success.withOpacity(0.08)
+                          : AppColors.success.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: AppColors.success.withOpacity(0.5)),
+                    ),
+                    child: isApprovingAll
+                        ? const Center(
+                            child: SizedBox(
+                              width: 18,
+                              height: 18,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 color: AppColors.success,
                               ),
-                            )
-                          : Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.done_all_rounded,
-                                    size: 14, color: AppColors.success),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'قبول الكل ($pendingCount)',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.success,
-                                  ),
-                                ),
-                              ],
                             ),
-                    ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.done_all_rounded,
+                                  size: 16, color: AppColors.success),
+                              const SizedBox(width: 6),
+                              Text(
+                                'قبول الكل ($pendingCount)',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.success,
+                                ),
+                              ),
+                            ],
+                          ),
                   ),
-                )
-              : null,
-          children: subscriptions
-              .map((sub) => _buildStudentItem(sub))
-              .toList(),
-        ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -674,8 +687,8 @@ class _TeacherSubscriptionsScreenState
               children: [
                 // Avatar
                 Container(
-                  width: 44,
-                  height: 44,
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -695,7 +708,7 @@ class _TeacherSubscriptionsScreenState
                       style: GoogleFonts.outfit(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                        fontSize: 15,
                       ),
                     ),
                   ),
@@ -708,11 +721,26 @@ class _TeacherSubscriptionsScreenState
                       Text(
                         subscription.studentName,
                         style: GoogleFonts.outfit(
-                          fontSize: 14,
+                          fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: Theme.of(context).textTheme.bodyLarge?.color,
                         ),
                       ),
+                      if (subscription.studentEmail.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subscription.studentEmail,
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            color: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.color
+                                ?.withOpacity(0.6),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                       const SizedBox(height: 3),
                       Row(
                         children: [
@@ -727,7 +755,7 @@ class _TeacherSubscriptionsScreenState
                           Text(
                             _formatDate(subscription.createdAt),
                             style: GoogleFonts.inter(
-                              fontSize: 11,
+                              fontSize: 10,
                               color: Theme.of(context)
                                   .textTheme
                                   .bodyMedium
@@ -757,7 +785,7 @@ class _TeacherSubscriptionsScreenState
                       Text(
                         statusLabel,
                         style: GoogleFonts.inter(
-                          fontSize: 11,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
                           color: statusColor,
                         ),
@@ -829,7 +857,7 @@ class _TeacherSubscriptionsScreenState
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: filled ? color : color.withOpacity(0.08),
           borderRadius: BorderRadius.circular(12),
@@ -843,7 +871,7 @@ class _TeacherSubscriptionsScreenState
             Text(
               label,
               style: GoogleFonts.inter(
-                fontSize: 12,
+                fontSize: 10,
                 fontWeight: FontWeight.bold,
                 color: filled ? Colors.white : color,
               ),

@@ -903,38 +903,55 @@ class _LectureDetailsScreenState extends State<LectureDetailsScreen>
                 // Thumbnail / Icon
                 if (isVideo && thumbnailUrl != null)
                   Container(
-                    width: 80,
-                    height: 50,
+                    width: 90,
+                    height: 56,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                       image: DecorationImage(
                         image: NetworkImage(thumbnailUrl),
                         fit: BoxFit.cover,
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: iconColor.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
                     ),
                     child: Center(
                       child: Container(
-                        padding: const EdgeInsets.all(5),
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: iconColor.withOpacity(0.9),
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: const Icon(
                           Icons.play_arrow_rounded,
                           color: Colors.white,
-                          size: 16,
+                          size: 22,
                         ),
                       ),
                     ),
                   )
                 else
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: iconColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      color: iconColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: iconColor.withOpacity(0.2),
+                      ),
                     ),
-                    child: Icon(icon, color: iconColor, size: 24),
+                    child: Icon(icon, color: iconColor, size: 28),
                   ),
                 const SizedBox(width: 14),
                 // Title
