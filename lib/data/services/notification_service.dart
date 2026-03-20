@@ -15,6 +15,7 @@ import 'course_service.dart';
 import '../models/course_models.dart';
 
 import 'token_service.dart';
+import 'notification_cache_service.dart';
 
 /// Background message handler - must be a top-level function
 @pragma('vm:entry-point')
@@ -22,6 +23,15 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   print('📩 Background message received: ${message.messageId}');
   print('📩 Data: ${message.data}');
+
+  // Cache navigation data for in-app notification list
+  if (message.data.isNotEmpty) {
+    await NotificationCacheService.cacheNotificationData(
+      message.data,
+      title: message.notification?.title,
+      body: message.notification?.body,
+    );
+  }
 
   // Check if notification is for this role even in background
   final tokenService = TokenService();
@@ -160,7 +170,7 @@ class NotificationService {
       _pendingNotificationData = null;
       // Delay to let the main screen fully render before navigating
       Future.delayed(const Duration(milliseconds: 1500), () {
-        _handleNotificationData(data);
+        handleNotificationData(data);
       });
     }
   }
@@ -206,7 +216,7 @@ class NotificationService {
     if (response.payload != null) {
       try {
         final data = jsonDecode(response.payload!);
-        _handleNotificationData(data);
+        handleNotificationData(data);
       } catch (e) {
         print('Error parsing notification payload: $e');
       }
@@ -347,6 +357,15 @@ class NotificationService {
       await _showLocalNotification(message);
     }
 
+    // Cache navigation data for in-app notification list
+    if (message.data.isNotEmpty) {
+      await NotificationCacheService.cacheNotificationData(
+        message.data,
+        title: message.notification?.title,
+        body: message.notification?.body,
+      );
+    }
+
     print('✅ Foreground notification processed');
   }
 
@@ -354,12 +373,12 @@ class NotificationService {
   static void _handleNotificationTap(RemoteMessage message) {
     print('🔔 Notification tapped!');
     print('🔔 Data: ${message.data}');
-    _handleNotificationData(message.data);
+    handleNotificationData(message.data);
   }
 
-  /// Handle notification data and navigate
-  static void _handleNotificationData(Map<String, dynamic> data) {
-    print('🎯 _handleNotificationData called with data: $data');
+  /// Handle notification data and navigate (public for in-app notification taps)
+  static void handleNotificationData(Map<String, dynamic> data) {
+    print('🎯 handleNotificationData called with data: $data');
     final type = data['type'] ?? '';
     print('🎯 Notification type: $type');
 

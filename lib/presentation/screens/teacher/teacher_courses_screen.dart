@@ -282,21 +282,20 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final whatsAppNumber = widget.teacherData['whatsAppNumber'];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      // ... existing scaffold properties ...
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: isDark ? const Color(0xFF0A0A0A) : Theme.of(context).scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        // ... existing app bar ...
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor.withOpacity(0.8),
+            color: isDark ? Theme.of(context).cardColor.withOpacity(0.8) : Colors.white.withOpacity(0.9),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.glassBorder),
+            border: Border.all(color: isDark ? AppColors.glassBorder : AppColors.primary.withOpacity(0.15)),
           ),
           child: IconButton(
             icon: Icon(
@@ -319,7 +318,7 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
       ),
       body: Stack(
         children: [
-          _buildAnimatedBackground(size),
+          if (isDark) _buildAnimatedBackground(size),
           _buildDecorativeOrbs(size),
           SafeArea(child: _buildBody()),
           if (_isLoading)
@@ -368,6 +367,7 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
                 child: Row(
                   children: _teacherStages.map((stage) {
                     final isSelected = stage['id'] == _selectedStageId;
+                    final isDark = Theme.of(context).brightness == Brightness.dark;
                     return Padding(
                       padding: const EdgeInsets.only(right: 12),
                       child: GestureDetector(
@@ -381,12 +381,12 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? AppColors.primary
-                                : AppColors.surface,
+                                : isDark ? AppColors.surface : Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: isSelected
                                   ? AppColors.primary
-                                  : AppColors.glassBorder,
+                                  : isDark ? AppColors.glassBorder : AppColors.primary.withOpacity(0.15),
                             ),
                             boxShadow: isSelected
                                 ? [
@@ -403,7 +403,7 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
                             style: GoogleFonts.inter(
                               color: isSelected
                                   ? Colors.white
-                                  : AppColors.textSecondary,
+                                  : Theme.of(context).textTheme.bodyMedium?.color,
                               fontWeight: isSelected
                                   ? FontWeight.w600
                                   : FontWeight.w500,
@@ -447,6 +447,7 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
   }
 
   Widget _buildTeacherHeader() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final photoUrl = widget.teacherData['photoUrl'];
     final subjectName = widget.teacherData['subjectName'] ?? '';
     final educationStages =
@@ -469,9 +470,9 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
       margin: const EdgeInsets.fromLTRB(20, 10, 20, 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: isDark ? Theme.of(context).cardColor : Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.glassBorder.withOpacity(0.5)),
+        border: Border.all(color: isDark ? AppColors.glassBorder.withOpacity(0.5) : AppColors.primary.withOpacity(0.1)),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withOpacity(0.1),
@@ -679,6 +680,7 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
   }
 
   Widget _buildCoursesHeader() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
       child: Row(
@@ -713,9 +715,9 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
+              color: isDark ? Theme.of(context).cardColor : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.glassBorder),
+              border: Border.all(color: isDark ? AppColors.glassBorder : AppColors.primary.withOpacity(0.12)),
             ),
             child: Text(
               '${_filteredCourses.length}',
@@ -1045,12 +1047,12 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
           Icon(
             Icons.videocam_off_rounded,
             size: 64,
-            color: AppColors.textSecondary.withOpacity(0.5),
+            color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.4),
           ),
           const SizedBox(height: 16),
           Text(
             "لا توجد دورات متاحة لهذا المعلم",
-            style: GoogleFonts.inter(color: AppColors.textSecondary),
+            style: GoogleFonts.inter(color: Theme.of(context).textTheme.bodySmall?.color),
             textAlign: TextAlign.center,
           ),
         ],
@@ -1085,9 +1087,9 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
   }
 
   Widget _buildDecorativeOrbs(Size size) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Stack(
       children: [
-        // Top-right red glow
         Positioned(
           top: -size.height * 0.1,
           right: -size.width * 0.2,
@@ -1106,8 +1108,8 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.primary.withOpacity(0.25),
-                        AppColors.primaryDark.withOpacity(0.08),
+                        AppColors.primary.withOpacity(isDark ? 0.25 : 0.08),
+                        AppColors.primaryDark.withOpacity(isDark ? 0.08 : 0.02),
                         Colors.transparent,
                       ],
                       stops: const [0.0, 0.5, 1.0],
@@ -1118,7 +1120,6 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
             },
           ),
         ),
-        // Bottom-left red glow
         Positioned(
           bottom: -size.height * 0.15,
           left: -size.width * 0.2,
@@ -1137,8 +1138,8 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.primaryDark.withOpacity(0.18),
-                        AppColors.primary.withOpacity(0.05),
+                        AppColors.primaryDark.withOpacity(isDark ? 0.18 : 0.06),
+                        AppColors.primary.withOpacity(isDark ? 0.05 : 0.02),
                         Colors.transparent,
                       ],
                       stops: const [0.0, 0.4, 1.0],

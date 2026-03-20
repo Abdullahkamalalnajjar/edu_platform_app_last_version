@@ -50,7 +50,7 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
   }
 
   /// Fetch exam questions once to count how many need manual grading.
-  /// Used to compute the accurate pending count on each submission card.
+  /// Only TextAnswer and ImageAnswer need manual grading — MCQ is auto-graded.
   Future<void> _fetchManualQuestionCount() async {
     final examId = widget.examId;
     if (examId == null) return;
@@ -60,24 +60,29 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
         final questions = response.data!.questions;
         final count = questions.where((q) {
           return q.answerType == 'TextAnswer' ||
-              q.answerType == 'ImageAnswer' ||
-              q.questionType == 'MCQ' ||
-              q.questionType == 'Image';
+              q.answerType == 'ImageAnswer';
         }).length;
         setState(() {
           _totalManualQuestions = count;
+          _applySearch(); // re-apply filter with correct count
         });
       }
     } catch (_) {}
   }
 
   /// Returns the real pending manual count for a submission.
-  /// Uses _totalManualQuestions if available, falls back to server's value.
+  /// If the server says nothing is pending at all, trust it (returns 0).
+  /// Otherwise uses _totalManualQuestions if fetched, or falls back to server.
   int _manualPending(ExamSubmission s) {
-    if (_totalManualQuestions < 0) return s.manualPendingGradingAnswers;
-    final pending = (_totalManualQuestions - s.manuallyGradedAnswers)
-        .clamp(0, _totalManualQuestions);
-    return pending;
+    // If server says nothing is pending at all, trust it
+    if (s.pendingGradingAnswers == 0) return 0;
+    // If we know the exact manual question count, compute accurately
+    if (_totalManualQuestions > 0) {
+      return (_totalManualQuestions - s.manuallyGradedAnswers)
+          .clamp(0, _totalManualQuestions);
+    }
+    // Fallback: use server's manual pending value
+    return s.manualPendingGradingAnswers;
   }
 
   Future<void> _fetchNonSubmittedStats() async {
@@ -117,11 +122,14 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
       // We might need to handle the display separately or merge them.
     }
 
-    // Apply pending filter — show students not yet graded by teacher
+    // Apply pending filter — show only students whose badge says "بانتظار تصحيح"
     if (_filterPendingOnly) {
-      baseList = baseList
-          .where((s) => s.gradedByName == null || s.gradedByName!.isEmpty)
-          .toList();
+      baseList = baseList.where((s) {
+        final hasGradedBy =
+            s.gradedByName != null && s.gradedByName!.isNotEmpty;
+        if (hasGradedBy) return false; // already graded by someone
+        return _manualPending(s) > 0; // has pending manual questions
+      }).toList();
     }
 
     if (_searchQuery.isEmpty) {
@@ -491,9 +499,12 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
     final totalEnrolled =
         _nonSubmittedResponse?.totalEnrolledStudents ?? _submissions.length;
     final nonSubmitted = _nonSubmittedResponse?.nonSubmittedCount ?? 0;
-    final pendingCount = _submissions
-        .where((s) => s.gradedByName == null || s.gradedByName!.isEmpty)
-        .length;
+    final pendingCount = _submissions.where((s) {
+      final hasGradedBy =
+          s.gradedByName != null && s.gradedByName!.isNotEmpty;
+      if (hasGradedBy) return false;
+      return _manualPending(s) > 0;
+    }).length;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -1203,79 +1214,46 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
   Widget _buildStatusBadge(ExamSubmission submission) {
     final hasGradedBy =
         submission.gradedByName != null && submission.gradedByName!.isNotEmpty;
-
-    if (hasGradedBy) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: AppColors.success.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          'تم تصحيح بواسطة ${submission.gradedByName}',
-          style: const TextStyle(
-            color: AppColors.success,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
-    }
-
+    final serverSaysGraded = submission.pendingGradingAnswers == 0;
     final manualPending = _manualPending(submission);
-    final hasManualQuestions = _totalManualQuestions > 0;
-    final allManualDone = hasManualQuestions &&
-        manualPending == 0 &&
-        submission.manuallyGradedAnswers > 0;
 
-    if (allManualDone) {
+    // If graded — either server says so, or we have a grader name, or no manual pending
+    if (hasGradedBy || serverSaysGraded || manualPending == 0) {
+      final label = hasGradedBy
+          ? 'تم التصحيح ✓ بواسطة: ${submission.gradedByName}'
+          : 'تم التصحيح ✓';
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: AppColors.success.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Text(
-          'تم التصحيح',
-          style: TextStyle(
+        child: Text(
+          label,
+          style: const TextStyle(
             color: AppColors.success,
             fontSize: 10,
             fontWeight: FontWeight.bold,
           ),
         ),
       );
-    } else if (manualPending > 0) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: AppColors.warning.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          'بانتظار تصحيح ($manualPending)',
-          style: const TextStyle(
-            color: AppColors.warning,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
-    } else {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: AppColors.warning.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Text(
-          'بانتظار تصحيح',
-          style: TextStyle(
-            color: AppColors.warning,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
     }
+
+    // Pending manual grading
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        'بانتظار تصحيح ($manualPending)',
+        style: const TextStyle(
+          color: AppColors.warning,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
   }
 }

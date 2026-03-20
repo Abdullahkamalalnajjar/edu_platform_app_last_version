@@ -60,57 +60,90 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: isDark
+          ? const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF0A0A0A), Color(0xFF150808), Color(0xFF0D0505)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            )
+          : null,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header with Icon
           FadeInDown(
             duration: const Duration(milliseconds: 500),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withOpacity(0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              decoration: BoxDecoration(
+                gradient: isDark
+                    ? const LinearGradient(
+                        colors: [Color(0xFF1A0A0A), Color(0xFF120808)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : AppColors.primaryGradient,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: isDark
+                      ? AppColors.primary.withOpacity(0.15)
+                      : Colors.transparent,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(isDark ? 0.1 : 0.25),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(isDark ? 0.08 : 0.2),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      Icons.settings_rounded,
+                      color: isDark ? AppColors.primary : Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'الإعدادات',
+                        style: GoogleFonts.tajawal(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'إدارة تفضيلات التطبيق',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: isDark
+                              ? Colors.white.withOpacity(0.5)
+                              : Colors.white.withOpacity(0.8),
+                        ),
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.settings_rounded,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'الإعدادات',
-                      style: GoogleFonts.outfit(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: Theme.of(context).textTheme.headlineLarge?.color,
-                      ),
-                    ),
-                    Text(
-                      'إدارة تفضيلات التطبيق',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        color: Theme.of(context).textTheme.bodyMedium?.color,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
 
@@ -127,6 +160,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.person_outline_rounded,
                   title: 'تعديل الملف الشخصي',
                   subtitle: 'تحديث معلوماتك الشخصية',
+                  iconColor: const Color(0xFF4ECDC4),
                   onTap: () async {
                     final tokenService = TokenService();
                     final role = await tokenService.getRole();
@@ -140,7 +174,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       );
                     } else if (role == 'Teacher' && context.mounted) {
                       final teacherId = await tokenService.getTeacherId();
-                      // We can pass userId as well if needed, but the screen handles retrieval
                       if (context.mounted) {
                         Navigator.push(
                           context,
@@ -166,6 +199,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.lock_outline_rounded,
                   title: 'تغيير كلمة المرور',
                   subtitle: 'تحديث بيانات الأمان',
+                  iconColor: const Color(0xFFFF6B6B),
                   onTap: () => _showChangePasswordDialog(context),
                 ),
               ],
@@ -181,28 +215,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: _buildSection(
               title: 'التفضيلات',
               children: [
-                _buildSettingsTile(
-                  icon: Icons.language_rounded,
-                  title: 'اللغة',
-                  subtitle: 'العربية',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('اختيار اللغة قريباً!')),
-                    );
-                  },
-                ),
                 ValueListenableBuilder<ThemeMode>(
                   valueListenable: ThemeService.themeModeNotifier,
                   builder: (context, mode, child) {
-                    return _buildSettingsTile(
-                      icon: mode == ThemeMode.dark
-                          ? Icons.dark_mode_outlined
-                          : Icons.light_mode_outlined,
-                      title: 'المظهر',
-                      subtitle: mode == ThemeMode.dark
-                          ? 'الوضع الداكن'
-                          : 'الوضع الفاتح',
-                      onTap: () => _showThemePicker(context),
+                    final isDarkMode = mode == ThemeMode.dark;
+                    return _buildSettingsTileWithToggle(
+                      icon: isDarkMode
+                          ? Icons.dark_mode_rounded
+                          : Icons.light_mode_rounded,
+                      title: 'الوضع الداكن',
+                      subtitle: isDarkMode ? 'مفعّل' : 'غير مفعّل',
+                      iconColor: const Color(0xFFFFD93D),
+                      value: isDarkMode,
+                      onChanged: (val) {
+                        ThemeService.switchTheme(
+                          val ? ThemeMode.dark : ThemeMode.light,
+                        );
+                      },
                     );
                   },
                 ),
@@ -223,6 +252,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.info_outline_rounded,
                   title: 'حول التطبيق',
                   subtitle: 'الإصدار $_version',
+                  iconColor: const Color(0xFF74B9FF),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -256,117 +286,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 40),
         ],
       ),
-    );
-  }
-
-  void _showThemePicker(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'اختر المظهر',
-                style: GoogleFonts.outfit(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).textTheme.titleLarge?.color,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildThemeOption(
-              context,
-              'الوضع الداكن',
-              ThemeMode.dark,
-              Icons.dark_mode_rounded,
-            ),
-            _buildThemeOption(
-              context,
-              'الوضع الفاتح',
-              ThemeMode.light,
-              Icons.light_mode_rounded,
-            ),
-          ],
-        ),
       ),
     );
   }
 
-  Widget _buildThemeOption(
-    BuildContext context,
-    String title,
-    ThemeMode mode,
-    IconData icon,
-  ) {
-    final isSelected = ThemeService.themeModeNotifier.value == mode;
-    final primaryColor = Theme.of(context).primaryColor;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          ThemeService.switchTheme(mode);
-          Navigator.pop(context);
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? primaryColor.withOpacity(0.1)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  icon,
-                  color: isSelected
-                      ? primaryColor
-                      : Theme.of(context).iconTheme.color,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Text(
-                title,
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected
-                      ? primaryColor
-                      : Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-              ),
-              const Spacer(),
-              if (isSelected)
-                Icon(Icons.check_circle_rounded, color: primaryColor, size: 24),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   void _showChangePasswordDialog(BuildContext context) {
     final currentPasswordController = TextEditingController();
@@ -789,24 +713,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 12),
-          child: Text(
-            title.toUpperCase(),
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).textTheme.bodySmall?.color,
-              letterSpacing: 1.2,
-            ),
+          padding: const EdgeInsets.only(right: 4, bottom: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 18,
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: GoogleFonts.tajawal(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+            ],
           ),
         ),
         Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Theme.of(context).dividerColor),
+            gradient: Theme.of(context).brightness == Brightness.dark
+                ? const LinearGradient(
+                    colors: [Color(0xFF141010), Color(0xFF1A0E0E)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? null
+                : Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.primary.withOpacity(0.1)
+                  : Theme.of(context).dividerColor.withOpacity(0.5),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          child: Column(children: children),
+          child: Column(
+            children: [
+              for (int i = 0; i < children.length; i++) ...[
+                children[i],
+                if (i < children.length - 1)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Divider(
+                      height: 1,
+                      color: Theme.of(context).dividerColor.withOpacity(0.3),
+                    ),
+                  ),
+              ],
+            ],
+          ),
         ),
       ],
     );
@@ -817,61 +787,160 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    Color? iconColor,
     bool isDestructive = false,
   }) {
+    final color = isDestructive ? AppColors.error : (iconColor ?? AppColors.primary);
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                width: 46,
+                height: 46,
                 decoration: BoxDecoration(
-                  color: isDestructive
-                      ? AppColors.error.withOpacity(0.1)
-                      : Theme.of(context).scaffoldBackgroundColor,
-                  borderRadius: BorderRadius.circular(12),
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      color.withOpacity(0.2),
+                      color.withOpacity(0.08),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Icon(
                   icon,
                   size: 22,
-                  color: isDestructive ? AppColors.error : AppColors.primary,
+                  color: color,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.tajawal(
                         fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                         color: isDestructive
                             ? AppColors.error
                             : Theme.of(context).textTheme.bodyLarge?.color,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
                       subtitle,
                       style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: Theme.of(context).textTheme.bodySmall?.color,
+                        fontSize: 12,
+                        color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
                       ),
                     ),
                   ],
                 ),
               ),
               Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.textMuted,
-                size: 22,
+                Icons.arrow_forward_ios_rounded,
+                color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.4),
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsTileWithToggle({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color iconColor,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => onChanged(!value),
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      iconColor.withOpacity(0.2),
+                      iconColor.withOpacity(0.08),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: iconColor.withOpacity(0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  icon,
+                  size: 22,
+                  color: iconColor,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.tajawal(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: value,
+                onChanged: onChanged,
+                activeColor: AppColors.primary,
+                activeTrackColor: AppColors.primary.withOpacity(0.3),
+                inactiveThumbColor: isDark ? Colors.grey[400] : Colors.grey[500],
+                inactiveTrackColor: isDark ? Colors.grey[800] : Colors.grey[300],
               ),
             ],
           ),

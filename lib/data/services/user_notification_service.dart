@@ -89,8 +89,14 @@ class UserNotificationService {
       if (body['succeeded'] == true) {
         return ApiResponse<List<NotificationItem>>.fromJson(
           body,
-          (data) =>
-              (data as List).map((e) => NotificationItem.fromJson(e)).toList(),
+          (data) {
+                final list = data as List;
+                for (var e in list) {
+                  print('📋 Notification raw keys: ${(e as Map).keys.toList()}');
+                  print('📋 Notification raw data: $e');
+                }
+                return list.map((e) => NotificationItem.fromJson(e)).toList();
+              },
         );
       } else {
         return ApiResponse(

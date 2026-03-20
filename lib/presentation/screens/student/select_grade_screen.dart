@@ -82,9 +82,10 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: isDark ? const Color(0xFF0A0A0A) : Theme.of(context).scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -92,9 +93,9 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor.withOpacity(0.8),
+            color: isDark ? Theme.of(context).cardColor.withOpacity(0.8) : Colors.white.withOpacity(0.9),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.glassBorder),
+            border: Border.all(color: isDark ? AppColors.glassBorder : AppColors.primary.withOpacity(0.15)),
           ),
           child: IconButton(
             icon: Icon(
@@ -119,7 +120,7 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
       ),
       body: Stack(
         children: [
-          _buildAnimatedBackground(),
+          if (isDark) _buildAnimatedBackground(),
           _buildDecorativeOrbs(size),
           SafeArea(child: _buildBody()),
         ],
@@ -185,7 +186,7 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
                   style: GoogleFonts.outfit(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
-                    color: Colors.white,
+                    color: Theme.of(context).textTheme.displaySmall?.color,
                     height: 1.1,
                     letterSpacing: -0.3,
                   ),
@@ -197,7 +198,7 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
               'اختر المرحلة الدراسية اللي عايز تشوف دوراتها',
               style: GoogleFonts.inter(
                 fontSize: 12,
-                color: Colors.white38,
+                color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.6),
                 height: 1.4,
               ),
             ),
@@ -348,7 +349,7 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
                         style: GoogleFonts.outfit(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                          color: Theme.of(context).textTheme.displaySmall?.color ?? Colors.white,
                           height: 1.2,
                         ),
                         maxLines: 2,
@@ -422,7 +423,7 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
             Icon(
               Icons.arrow_back_ios_rounded,
               size: 16,
-              color: Colors.white24,
+                color: Colors.white24,
             ),
             const SizedBox(width: 12),
             // Stage name
@@ -435,7 +436,7 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
                     style: GoogleFonts.outfit(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      color: Theme.of(context).textTheme.displaySmall?.color ?? Colors.white,
                     ),
                     textAlign: TextAlign.right,
                     maxLines: 1,
@@ -508,7 +509,7 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
               style: GoogleFonts.outfit(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.white54,
+                color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.5),
               ),
               textAlign: TextAlign.center,
             ),
@@ -545,9 +546,9 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
   }
 
   Widget _buildDecorativeOrbs(Size size) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Stack(
       children: [
-        // Top-right glow
         Positioned(
           top: -size.height * 0.08,
           right: -size.width * 0.15,
@@ -566,8 +567,8 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.primary.withOpacity(0.2),
-                        AppColors.primaryDark.withOpacity(0.05),
+                        AppColors.primary.withOpacity(isDark ? 0.2 : 0.08),
+                        AppColors.primaryDark.withOpacity(isDark ? 0.05 : 0.02),
                         Colors.transparent,
                       ],
                       stops: const [0.0, 0.5, 1.0],
@@ -578,7 +579,6 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
             },
           ),
         ),
-        // Bottom-left glow
         Positioned(
           bottom: -size.height * 0.12,
           left: -size.width * 0.2,
@@ -597,8 +597,8 @@ class _SelectGradeScreenState extends State<SelectGradeScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.primaryDark.withOpacity(0.15),
-                        AppColors.primary.withOpacity(0.04),
+                        AppColors.primaryDark.withOpacity(isDark ? 0.15 : 0.06),
+                        AppColors.primary.withOpacity(isDark ? 0.04 : 0.02),
                         Colors.transparent,
                       ],
                       stops: const [0.0, 0.4, 1.0],

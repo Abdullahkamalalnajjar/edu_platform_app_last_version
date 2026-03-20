@@ -76,12 +76,13 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: isDark ? const Color(0xFF0A0A0A) : Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          _buildAnimatedBackground(size),
+          if (isDark) _buildAnimatedBackground(size),
           _buildDecorativeOrbs(size),
           SafeArea(child: _buildBody()),
         ],
@@ -124,9 +125,9 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
   }
 
   Widget _buildDecorativeOrbs(Size size) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Stack(
       children: [
-        // Top-right red glow
         Positioned(
           top: -size.height * 0.08,
           right: -size.width * 0.15,
@@ -145,8 +146,8 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.primary.withOpacity(0.2),
-                        AppColors.primaryDark.withOpacity(0.05),
+                        AppColors.primary.withOpacity(isDark ? 0.2 : 0.08),
+                        AppColors.primaryDark.withOpacity(isDark ? 0.05 : 0.02),
                         Colors.transparent,
                       ],
                       stops: const [0.0, 0.5, 1.0],
@@ -157,7 +158,6 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
             },
           ),
         ),
-        // Bottom-left dark red glow
         Positioned(
           bottom: -size.height * 0.12,
           left: -size.width * 0.2,
@@ -176,8 +176,8 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.primaryDark.withOpacity(0.15),
-                        AppColors.primary.withOpacity(0.04),
+                        AppColors.primaryDark.withOpacity(isDark ? 0.15 : 0.06),
+                        AppColors.primary.withOpacity(isDark ? 0.04 : 0.02),
                         Colors.transparent,
                       ],
                       stops: const [0.0, 0.4, 1.0],
@@ -324,13 +324,20 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
                           Flexible(
                             child: ShaderMask(
                               shaderCallback: (bounds) {
-                                return const LinearGradient(
-                                  colors: [
-                                    Colors.white,
-                                    AppColors.primary,
-                                    Colors.white,
-                                  ],
-                                  stops: [0.0, 0.5, 1.0],
+                                final isDark = Theme.of(context).brightness == Brightness.dark;
+                                return LinearGradient(
+                                  colors: isDark
+                                      ? const [
+                                          Colors.white,
+                                          AppColors.primary,
+                                          Colors.white,
+                                        ]
+                                      : [
+                                          AppColors.primary.withOpacity(0.8),
+                                          AppColors.primaryDark,
+                                          AppColors.primary.withOpacity(0.8),
+                                        ],
+                                  stops: const [0.0, 0.5, 1.0],
                                 ).createShader(bounds);
                               },
                               child: Text(
@@ -410,7 +417,9 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
                                     ),
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: const Color(0xFF0A0A0A),
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF0A0A0A)
+                                          : Colors.white,
                                       width: 2,
                                     ),
                                     boxShadow: [

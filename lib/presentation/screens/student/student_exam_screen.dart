@@ -897,7 +897,7 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
             const SizedBox(height: 16),
             Text(
               _error!,
-              style: GoogleFonts.inter(color: AppColors.textSecondary),
+              style: GoogleFonts.inter(color: Theme.of(context).textTheme.bodyMedium?.color),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -920,7 +920,7 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
       return Center(
         child: Text(
           'لم يتم العثور على اختبار.',
-          style: GoogleFonts.inter(color: AppColors.textSecondary),
+          style: GoogleFonts.inter(color: Theme.of(context).textTheme.bodyMedium?.color),
         ),
       );
     }
@@ -977,7 +977,7 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                 style: GoogleFonts.outfit(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
               ),
               const SizedBox(height: 8),
@@ -1107,7 +1107,9 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                               child: CircularProgressIndicator(
                                 value: percentage,
                                 strokeWidth: 15,
-                                backgroundColor: AppColors.surfaceLight,
+                                backgroundColor: Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.surfaceLight
+                                    : AppColors.primary.withOpacity(0.08),
                                 valueColor: AlwaysStoppedAnimation<Color>(
                                   isPassing
                                       ? AppColors.success
@@ -1124,13 +1126,13 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                                   style: GoogleFonts.outfit(
                                     fontSize: 56,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                    color: Theme.of(context).textTheme.bodyLarge?.color,
                                   ),
                                 ),
                                 Container(
                                   height: 2,
                                   width: 50,
-                                  color: Colors.white12,
+                                  color: Theme.of(context).dividerColor.withOpacity(0.3),
                                   margin: const EdgeInsets.symmetric(
                                     vertical: 8,
                                   ),
@@ -1196,9 +1198,11 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                           Container(
                             padding: const EdgeInsets.all(24),
                             decoration: BoxDecoration(
-                              color: AppColors.surfaceLight.withOpacity(0.5),
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.surfaceLight.withOpacity(0.5)
+                                  : AppColors.primary.withOpacity(0.05),
                               borderRadius: BorderRadius.circular(24),
-                              border: Border.all(color: AppColors.glassBorder),
+                              border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? AppColors.glassBorder : AppColors.primary.withOpacity(0.1)),
                             ),
                             child: Column(
                               children: [
@@ -1208,7 +1212,9 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                                       Container(
                                         padding: const EdgeInsets.all(10),
                                         decoration: BoxDecoration(
-                                          color: AppColors.background,
+                                          color: Theme.of(context).brightness == Brightness.dark
+                                              ? AppColors.background
+                                              : AppColors.primary.withOpacity(0.08),
                                           borderRadius: BorderRadius.circular(
                                             10,
                                           ),
@@ -1236,7 +1242,7 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                                         style: GoogleFonts.outfit(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.white,
+                                          color: Theme.of(context).textTheme.bodyLarge?.color,
                                         ),
                                       ),
                                     ],
@@ -1248,7 +1254,7 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                                     ),
                                     child: Divider(
                                       height: 1,
-                                      color: Colors.white.withOpacity(0.05),
+                                      color: Theme.of(context).dividerColor.withOpacity(0.2),
                                     ),
                                   ),
                                 if (hasEssays)
@@ -1257,7 +1263,9 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                                       Container(
                                         padding: const EdgeInsets.all(10),
                                         decoration: BoxDecoration(
-                                          color: AppColors.background,
+                                          color: Theme.of(context).brightness == Brightness.dark
+                                              ? AppColors.background
+                                              : AppColors.primary.withOpacity(0.08),
                                           borderRadius: BorderRadius.circular(
                                             10,
                                           ),
@@ -1312,7 +1320,7 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                                           style: GoogleFonts.outfit(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.white,
+                                            color: Theme.of(context).textTheme.bodyLarge?.color,
                                           ),
                                         ),
                                     ],
@@ -1339,7 +1347,7 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                       },
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: BorderSide(color: AppColors.glassBorder),
+                        side: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.glassBorder : AppColors.primary.withOpacity(0.3)),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -1347,7 +1355,7 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                       child: Text(
                         'مراجعة الإجابات',
                         style: GoogleFonts.inter(
-                          color: Colors.white,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

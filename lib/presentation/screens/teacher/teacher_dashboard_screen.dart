@@ -24,6 +24,8 @@ import 'package:edu_platform_app/data/services/settings_service.dart';
 import 'package:edu_platform_app/core/constants/app_constants.dart';
 import 'package:edu_platform_app/data/services/theme_service.dart';
 import 'package:edu_platform_app/data/services/notification_service.dart';
+import 'package:edu_platform_app/data/services/user_notification_service.dart';
+import '../shared/notifications_screen.dart';
 
 class TeacherDashboardScreen extends StatefulWidget {
   final int? teacherId; // Optional teacher ID for admin view
@@ -358,6 +360,8 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
   List<Map<String, dynamic>> _educationStages = [];
   bool _isAssistant = false; // Track if user is assistant
   String? _teacherName; // Store teacher name for dashboard
+  final _notificationService = UserNotificationService();
+  int _unreadCount = 0;
 
   @override
   void initState() {
@@ -365,6 +369,7 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
     _checkUserRole();
     _fetchEducationStages();
     _updateConfig();
+    _fetchUnreadCount();
     // _fetchCourses() removed from here, called in _checkUserRole
   }
 
@@ -409,6 +414,15 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
     if (mounted && response.succeeded && response.data != null) {
       setState(() {
         _educationStages = response.data!;
+      });
+    }
+  }
+
+  Future<void> _fetchUnreadCount() async {
+    final count = await _notificationService.getUnreadCount();
+    if (mounted) {
+      setState(() {
+        _unreadCount = count;
       });
     }
   }
@@ -1091,20 +1105,20 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFFB71C1C),
-              Color(0xFFE53935),
-              Color(0xFFEF5350),
-              Color(0xFFD32F2F),
+              Color(0xFF1A0505), // Almost black with red tint
+              Color(0xFF2D0A0A), // Very dark maroon
+              Color(0xFF4A1010), // Dark red-black
+              Color(0xFF1A0505), // Back to near-black
             ],
             stops: [0.0, 0.35, 0.7, 1.0],
           );
 
     final shadowColor = isRamadan
         ? const Color.fromARGB(255, 94, 27, 27).withOpacity(0.55)
-        : const Color(0xFFE53935).withOpacity(0.45);
+        : const Color(0xFF2D0A0A).withOpacity(0.5);
 
     final collapsedBg =
-        isRamadan ? const Color(0xFF3B0000) : const Color(0xFFB71C1C);
+        isRamadan ? const Color(0xFF3B0000) : const Color(0xFF1A0505);
 
     // Pre-compute filtered list
     final filteredCourses = _courses.where((c) {
@@ -1255,6 +1269,73 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                 ],
               ),
               actions: [
+                // Notifications Bell
+                Container(
+                  margin: const EdgeInsets.only(left: 4),
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationsScreen(),
+                        ),
+                      ).then((_) => _fetchUnreadCount());
+                    },
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.notifications_rounded,
+                            color: Color(0xFFFFD700),
+                            size: 18,
+                          ),
+                        ),
+                        if (_unreadCount > 0)
+                          Positioned(
+                            top: -4,
+                            right: -4,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFFFF4757),
+                                    Color(0xFFFF6B81),
+                                  ],
+                                ),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: const Color(0xFFB71C1C),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFFF4757).withOpacity(0.4),
+                                    blurRadius: 6,
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                _unreadCount > 9 ? '9+' : '$_unreadCount',
+                                style: GoogleFonts.inter(
+                                  color: Colors.white,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Refresh Button
                 Container(
                   margin: const EdgeInsets.only(left: 8),
                   child: IconButton(
@@ -1624,7 +1705,7 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                               .surface
                               .withOpacity(0.5),
                           shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.glassBorder),
+                          border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? AppColors.glassBorder : AppColors.primary.withOpacity(0.12)),
                         ),
                         child: ShaderMask(
                           shaderCallback: (bounds) =>
@@ -2084,7 +2165,7 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.glassBorder),
+          border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? AppColors.glassBorder : AppColors.primary.withOpacity(0.1)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
@@ -2119,7 +2200,7 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                         borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(20),
                         ),
-                        color: AppColors.surface,
+                        color: Theme.of(context).brightness == Brightness.dark ? AppColors.surface : AppColors.primary.withOpacity(0.05),
                         image: course.courseImageUrl != null &&
                                 course.courseImageUrl!.isNotEmpty
                             ? DecorationImage(
@@ -2370,7 +2451,7 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                               Text(
                                 '${course.price.toStringAsFixed(0)} ج.م',
                                 style: GoogleFonts.inter(
-                                  color: AppColors.textSecondary,
+                                  color: Theme.of(context).textTheme.bodyMedium?.color,
                                   decoration: TextDecoration.lineThrough,
                                   fontSize: 12,
                                 ),
@@ -2611,7 +2692,7 @@ class _ReorderCoursesSheetState extends State<_ReorderCoursesSheet> {
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.glassBorder),
+                      border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? AppColors.glassBorder : AppColors.primary.withOpacity(0.1)),
                     ),
                     child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(
@@ -2641,9 +2722,9 @@ class _ReorderCoursesSheetState extends State<_ReorderCoursesSheet> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      trailing: const Icon(
+                      trailing: Icon(
                         Icons.drag_handle_rounded,
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
                       ),
                     ),
                   );
@@ -2745,259 +2826,320 @@ class _TeacherProfilePageState extends State<_TeacherProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        toolbarHeight: 80,
-        automaticallyImplyLeading: false,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.glassBorder),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.1),
-                    blurRadius: 15,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.person_rounded,
-                color: AppColors.primary,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'الملف الشخصي',
-                  style: GoogleFonts.outfit(
-                    color: Theme.of(context).textTheme.titleLarge?.color,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                  ),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: isDark
+            ? const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF0A0A0A), Color(0xFF150808), Color(0xFF0D0505)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
-                Text(
-                  'معلوماتك الشخصية',
-                  style: GoogleFonts.inter(
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: AppColors.primaryGradient,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
+              )
+            : BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor),
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              )
+            : SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 60, 20, 100),
+                child: Column(
+                  children: [
+                    // Profile Header Card
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        shape: BoxShape.circle,
-                      ),
-                      child: ClipOval(
-                        child: SizedBox(
-                          width: 100,
-                          height: 100,
-                          child: _photoUrl != null
-                              ? Image.network(
-                                  _photoUrl!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.surface,
-                                      child: Icon(
-                                        Icons.person_rounded,
-                                        size: 50,
-                                        color: Theme.of(
-                                          context,
-                                        ).textTheme.bodyLarge?.color,
-                                      ),
-                                    );
-                                  },
-                                )
-                              : Container(
-                                  color: Theme.of(context).colorScheme.surface,
-                                  child: Icon(
-                                    Icons.person_rounded,
-                                    size: 50,
-                                    color: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge?.color,
-                                  ),
-                                ),
+                        gradient: isDark
+                            ? const LinearGradient(
+                                colors: [Color(0xFF1A0A0A), Color(0xFF120808)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : AppColors.primaryGradient,
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: isDark
+                              ? AppColors.primary.withOpacity(0.12)
+                              : Colors.transparent,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(isDark ? 0.08 : 0.25),
+                            blurRadius: 24,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // Avatar
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.3),
+                                width: 2.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withOpacity(0.3),
+                                  blurRadius: 20,
+                                  spreadRadius: 4,
+                                ),
+                              ],
+                            ),
+                            child: ClipOval(
+                              child: SizedBox(
+                                width: 90,
+                                height: 90,
+                                child: _photoUrl != null
+                                    ? Image.network(
+                                        _photoUrl!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (c, e, s) => Container(
+                                          color: Colors.white.withOpacity(0.1),
+                                          child: const Icon(Icons.person_rounded,
+                                              size: 45, color: Colors.white70),
+                                        ),
+                                      )
+                                    : Container(
+                                        color: Colors.white.withOpacity(0.1),
+                                        child: const Icon(Icons.person_rounded,
+                                            size: 45, color: Colors.white70),
+                                      ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Text(
+                            _userName ?? 'اسم المعلم',
+                            style: GoogleFonts.tajawal(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(isDark ? 0.08 : 0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              _userRole == 'Teacher'
+                                  ? '\u{1F468}\u{200D}\u{1F3EB} معلم'
+                                  : (_userRole ?? 'معلم'),
+                              style: GoogleFonts.tajawal(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white.withOpacity(0.9),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    _userName ?? 'اسم المستخدم',
-                    style: GoogleFonts.outfit(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      _userRole == 'Teacher' ? 'معلم' : (_userRole ?? 'معلم'),
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  _buildInfoTile(
-                    'البريد الإلكتروني',
-                    _userEmail ?? 'غير متوفر',
-                  ),
-                  const SizedBox(height: 16),
-                  if (_phoneNumber != null) ...[
-                    _buildInfoTile('رقم الهاتف', _phoneNumber!),
-                    const SizedBox(height: 16),
-                  ],
-                  if (_whatsAppNumber != null) ...[
-                    _buildInfoTile('واتساب', _whatsAppNumber!),
-                    const SizedBox(height: 16),
-                  ],
-                  if (_governorate != null) ...[
-                    _buildInfoTile('المحافظة', _governorate!),
-                    const SizedBox(height: 16),
-                  ],
-                  if (_city != null) ...[
-                    _buildInfoTile('المدينة', _city!),
-                    const SizedBox(height: 16),
-                  ],
-                  if (_subjectName != null) ...[
-                    _buildInfoTile('المادة', _subjectName!),
-                    const SizedBox(height: 16),
-                  ],
-                  if (_facebookUrl != null || _telegramUrl != null) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (_facebookUrl != null)
-                          _buildSocialIcon(Icons.facebook, _facebookUrl!),
-                        if (_facebookUrl != null && _telegramUrl != null)
-                          const SizedBox(width: 16),
-                        if (_telegramUrl != null)
-                          _buildSocialIcon(Icons.send_rounded, _telegramUrl!),
-                      ],
-                    ),
+
                     const SizedBox(height: 24),
+
+                    // Info Section
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: isDark
+                            ? const LinearGradient(
+                                colors: [Color(0xFF141010), Color(0xFF1A0E0E)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : null,
+                        color: isDark ? null : Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isDark
+                              ? AppColors.primary.withOpacity(0.1)
+                              : Theme.of(context).dividerColor.withOpacity(0.5),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          _buildInfoRow(
+                            Icons.email_outlined,
+                            'البريد الإلكتروني',
+                            _userEmail ?? 'غير متوفر',
+                            const Color(0xFF74B9FF),
+                            showDivider: true,
+                          ),
+                          if (_phoneNumber != null && _phoneNumber!.isNotEmpty)
+                            _buildInfoRow(
+                              Icons.phone_android_rounded,
+                              'رقم الهاتف',
+                              _phoneNumber!,
+                              const Color(0xFF4ECDC4),
+                              showDivider: true,
+                            ),
+                          if (_whatsAppNumber != null && _whatsAppNumber!.isNotEmpty)
+                            _buildInfoRow(
+                              Icons.chat_rounded,
+                              'واتساب',
+                              _whatsAppNumber!,
+                              const Color(0xFF25D366),
+                              showDivider: true,
+                            ),
+                          if (_governorate != null && _governorate!.isNotEmpty)
+                            _buildInfoRow(
+                              Icons.location_city_rounded,
+                              'المحافظة',
+                              _governorate!,
+                              const Color(0xFF6C5CE7),
+                              showDivider: true,
+                            ),
+                          if (_city != null && _city!.isNotEmpty)
+                            _buildInfoRow(
+                              Icons.place_rounded,
+                              'المدينة',
+                              _city!,
+                              const Color(0xFFFF6B6B),
+                              showDivider: true,
+                            ),
+                          if (_subjectName != null && _subjectName!.isNotEmpty)
+                            _buildInfoRow(
+                              Icons.menu_book_rounded,
+                              'المادة',
+                              _subjectName!,
+                              const Color(0xFFFFD93D),
+                              showDivider: true,
+                            ),
+                          if (_facebookUrl != null && _facebookUrl!.isNotEmpty)
+                            _buildInfoRow(
+                              Icons.facebook,
+                              'فيسبوك',
+                              _facebookUrl!,
+                              const Color(0xFF1877F2),
+                              showDivider: true,
+                            ),
+                          if (_telegramUrl != null && _telegramUrl!.isNotEmpty)
+                            _buildInfoRow(
+                              Icons.send_rounded,
+                              'تليجرام',
+                              _telegramUrl!,
+                              const Color(0xFF0088CC),
+                              showDivider: true,
+                            ),
+                          _buildInfoRow(
+                            Icons.badge_rounded,
+                            'نوع الحساب',
+                            _userRole == 'Teacher' ? 'معلم' : (_userRole ?? 'معلم'),
+                            const Color(0xFFA29BFE),
+                            showDivider: _userId != null,
+                          ),
+                          if (_userId != null)
+                            _buildInfoRow(
+                              Icons.tag_rounded,
+                              'رقم المعرف',
+                              _userId.toString(),
+                              const Color(0xFFFF9FF3),
+                              showDivider: false,
+                            ),
+                        ],
+                      ),
+                    ),
                   ],
-                  _buildInfoTile(
-                    'نوع الحساب',
-                    _userRole == 'Teacher' ? 'معلم' : (_userRole ?? 'معلم'),
-                  ),
-                  if (_userId != null) ...[
-                    const SizedBox(height: 16),
-                    _buildInfoTile('رقم المعرف', _userId.toString()),
-                  ],
-                  const SizedBox(height: 16),
-                ],
+                ),
               ),
-            ),
-    );
-  }
-
-  Widget _buildInfoTile(String label, String value) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.glassBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              color: Theme.of(context).textTheme.bodyMedium?.color,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: GoogleFonts.inter(
-              fontSize: 16,
-              color: Theme.of(context).textTheme.bodyLarge?.color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }
 
-  Widget _buildSocialIcon(IconData icon, String url) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        shape: BoxShape.circle,
-        border: Border.all(color: AppColors.glassBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value,
+    Color color, {
+    bool showDivider = true,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      color.withOpacity(0.2),
+                      color.withOpacity(0.08),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.1),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(icon, size: 20, color: color),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.6),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      value,
+                      style: GoogleFonts.tajawal(
+                        fontSize: 15,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Icon(icon, color: AppColors.primary, size: 24),
+        ),
+        if (showDivider)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Divider(
+              height: 1,
+              color: isDark
+                  ? AppColors.primary.withOpacity(0.06)
+                  : Theme.of(context).dividerColor.withOpacity(0.3),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -3089,130 +3231,201 @@ class _TeacherSettingsPageState extends State<_TeacherSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).cardColor,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.settings_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'الإعدادات',
-              style: GoogleFonts.outfit(
-                color: Theme.of(context).textTheme.bodyLarge?.color,
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // Account Section
-            _buildSection(
-              title: 'الحساب',
-              children: [
-                _buildSettingsTile(
-                  icon: Icons.person_outline_rounded,
-                  title: 'تعديل الملف الشخصي',
-                  subtitle: 'تحديث معلوماتك الشخصية',
-                  onTap: _showEditProfileDialog,
+      body: Container(
+        decoration: isDark
+            ? const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF0A0A0A), Color(0xFF150808), Color(0xFF0D0505)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
-                _buildSettingsTile(
-                  icon: Icons.lock_outline_rounded,
-                  title: 'تغيير كلمة المرور',
-                  subtitle: 'تحديث بيانات الأمان',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ChangePasswordScreen(),
+              )
+            : null,
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with Icon
+                FadeInDown(
+                  duration: const Duration(milliseconds: 500),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                    decoration: BoxDecoration(
+                      gradient: isDark
+                          ? const LinearGradient(
+                              colors: [Color(0xFF1A0A0A), Color(0xFF120808)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          : AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: isDark
+                            ? AppColors.primary.withOpacity(0.15)
+                            : Colors.transparent,
                       ),
-                    );
-                  },
-                ),
-                if (!_isAssistant)
-                  _buildSettingsTile(
-                    icon: Icons.people_outline_rounded,
-                    title: 'إدارة المساعدين',
-                    subtitle: 'إضافة وإدارة المساعدين',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ManageAssistantsScreen(
-                              teacherId: widget.teacherId),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(isDark ? 0.1 : 0.25),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
                         ),
-                      );
-                    },
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(isDark ? 0.08 : 0.2),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Icon(
+                            Icons.settings_rounded,
+                            color: isDark ? AppColors.primary : Colors.white,
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'الإعدادات',
+                              style: GoogleFonts.tajawal(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'إدارة تفضيلات التطبيق',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: isDark
+                                    ? Colors.white.withOpacity(0.5)
+                                    : Colors.white.withOpacity(0.8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            // Preferences
-            _buildSection(
-              title: 'التفضيلات',
-              children: [
-                _buildSettingsTile(
-                  icon: Icons.language_rounded,
-                  title: 'اللغة',
-                  subtitle: 'العربية',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('اختيار اللغة قريباً!')),
-                    );
-                  },
                 ),
-                ValueListenableBuilder<ThemeMode>(
-                  valueListenable: ThemeService.themeModeNotifier,
-                  builder: (context, mode, child) {
-                    return _buildSettingsTile(
-                      icon: mode == ThemeMode.dark
-                          ? Icons.dark_mode_rounded
-                          : Icons.light_mode_rounded,
-                      title: 'المظهر',
-                      subtitle: mode == ThemeMode.dark
-                          ? 'الوضع الليلي'
-                          : 'الوضع النهاري',
-                      onTap: () async {
-                        await ThemeService.toggleTheme();
-                      },
-                    );
-                  },
+
+                const SizedBox(height: 32),
+
+                // Account Section
+                FadeInUp(
+                  duration: const Duration(milliseconds: 500),
+                  delay: const Duration(milliseconds: 200),
+                  child: _buildSection(
+                    title: 'الحساب',
+                    children: [
+                      _buildSettingsTile(
+                        icon: Icons.person_outline_rounded,
+                        title: 'تعديل الملف الشخصي',
+                        subtitle: 'تحديث معلوماتك الشخصية',
+                        iconColor: const Color(0xFF4ECDC4),
+                        onTap: _showEditProfileDialog,
+                      ),
+                      _buildSettingsTile(
+                        icon: Icons.lock_outline_rounded,
+                        title: 'تغيير كلمة المرور',
+                        subtitle: 'تحديث بيانات الأمان',
+                        iconColor: const Color(0xFFFF6B6B),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ChangePasswordScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      if (!_isAssistant)
+                        _buildSettingsTile(
+                          icon: Icons.people_outline_rounded,
+                          title: 'إدارة المساعدين',
+                          subtitle: 'إضافة وإدارة المساعدين',
+                          iconColor: const Color(0xFF74B9FF),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ManageAssistantsScreen(
+                                    teacherId: widget.teacherId),
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
                 ),
+
+                const SizedBox(height: 24),
+
+                // Preferences Section
+                FadeInUp(
+                  duration: const Duration(milliseconds: 500),
+                  delay: const Duration(milliseconds: 300),
+                  child: _buildSection(
+                    title: 'التفضيلات',
+                    children: [
+                      ValueListenableBuilder<ThemeMode>(
+                        valueListenable: ThemeService.themeModeNotifier,
+                        builder: (context, mode, child) {
+                          final isDarkMode = mode == ThemeMode.dark;
+                          return _buildSettingsTileWithToggle(
+                            icon: isDarkMode
+                                ? Icons.dark_mode_rounded
+                                : Icons.light_mode_rounded,
+                            title: 'الوضع الداكن',
+                            subtitle: isDarkMode ? 'مفعّل' : 'غير مفعّل',
+                            iconColor: const Color(0xFFFFD93D),
+                            value: isDarkMode,
+                            onChanged: (val) {
+                              ThemeService.switchTheme(
+                                val ? ThemeMode.dark : ThemeMode.light,
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Logout Section
+                FadeInUp(
+                  duration: const Duration(milliseconds: 500),
+                  delay: const Duration(milliseconds: 400),
+                  child: Column(
+                    children: [
+                      _buildLogoutButton(),
+                      if (_deleteAccountEnabled &&
+                          widget.onDeleteAccount != null) ...[
+                        const SizedBox(height: 16),
+                        _buildDeleteAccountButton(),
+                      ],
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 40),
               ],
             ),
-            const SizedBox(height: 24),
-            // Logout Button
-            // Logout Button
-            Column(
-              children: [
-                _buildLogoutButton(),
-                if (_deleteAccountEnabled &&
-                    widget.onDeleteAccount != null) ...[
-                  const SizedBox(height: 16),
-                  _buildDeleteAccountButton(),
-                ],
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -3222,28 +3435,73 @@ class _TeacherSettingsPageState extends State<_TeacherSettingsPage> {
     required String title,
     required List<Widget> children,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 12),
-          child: Text(
-            title.toUpperCase(),
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).textTheme.bodySmall?.color,
-              letterSpacing: 1.2,
-            ),
+          padding: const EdgeInsets.only(right: 4, bottom: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 18,
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: GoogleFonts.tajawal(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+            ],
           ),
         ),
         Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.glassBorder),
+            gradient: isDark
+                ? const LinearGradient(
+                    colors: [Color(0xFF141010), Color(0xFF1A0E0E)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: isDark ? null : Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isDark
+                  ? AppColors.primary.withOpacity(0.1)
+                  : Theme.of(context).dividerColor.withOpacity(0.5),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          child: Column(children: children),
+          child: Column(
+            children: [
+              for (int i = 0; i < children.length; i++) ...[
+                children[i],
+                if (i < children.length - 1)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Divider(
+                      height: 1,
+                      color: Theme.of(context).dividerColor.withOpacity(0.3),
+                    ),
+                  ),
+              ],
+            ],
+          ),
         ),
       ],
     );
@@ -3254,52 +3512,157 @@ class _TeacherSettingsPageState extends State<_TeacherSettingsPage> {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    Color? iconColor,
   }) {
+    final color = iconColor ?? AppColors.primary;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                width: 46,
+                height: 46,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      color.withOpacity(0.2),
+                      color.withOpacity(0.08),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                child: Icon(icon, size: 22, color: AppColors.primary),
+                child: Icon(
+                  icon,
+                  size: 22,
+                  color: color,
+                ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.tajawal(
                         fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                         color: Theme.of(context).textTheme.bodyLarge?.color,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
                       subtitle,
                       style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: Theme.of(context).textTheme.bodySmall?.color,
+                        fontSize: 12,
+                        color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
                       ),
                     ),
                   ],
                 ),
               ),
               Icon(
-                Icons.chevron_right_rounded,
-                color: Theme.of(context).textTheme.bodySmall?.color,
-                size: 22,
+                Icons.arrow_forward_ios_rounded,
+                color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.4),
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsTileWithToggle({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color iconColor,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => onChanged(!value),
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      iconColor.withOpacity(0.2),
+                      iconColor.withOpacity(0.08),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: iconColor.withOpacity(0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  icon,
+                  size: 22,
+                  color: iconColor,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.tajawal(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: value,
+                onChanged: onChanged,
+                activeColor: AppColors.primary,
+                activeTrackColor: AppColors.primary.withOpacity(0.3),
+                inactiveThumbColor: isDark ? Colors.grey[400] : Colors.grey[500],
+                inactiveTrackColor: isDark ? Colors.grey[800] : Colors.grey[300],
               ),
             ],
           ),
@@ -3402,3 +3765,4 @@ class _TeacherSettingsPageState extends State<_TeacherSettingsPage> {
     );
   }
 }
+

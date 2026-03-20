@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:edu_platform_app/core/constants/app_colors.dart';
 import 'package:edu_platform_app/data/models/notification_models.dart';
 import 'package:edu_platform_app/data/services/user_notification_service.dart';
+import 'package:edu_platform_app/data/services/notification_service.dart';
+import 'package:edu_platform_app/data/services/notification_cache_service.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -59,6 +61,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           body: notification.body,
           timestamp: notification.timestamp,
           isRead: true,
+          type: notification.type,
+          courseId: notification.courseId,
+          examId: notification.examId,
+          lectureId: notification.lectureId,
+          status: notification.status,
+          teacherId: notification.teacherId,
+          lectureName: notification.lectureName,
+          courseName: notification.courseName,
         );
       }
     });
@@ -126,31 +136,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           'الإشعارات',
           style: GoogleFonts.outfit(
-            color: AppColors.textPrimary,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: AppColors.surface,
+        backgroundColor: isDark ? AppColors.surface : Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: AppColors.textPrimary,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
           ),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           if (_notifications.isNotEmpty)
             PopupMenuButton<String>(
-              icon: const Icon(
+              icon: Icon(
                 Icons.more_vert_rounded,
-                color: AppColors.textPrimary,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
               onSelected: (value) async {
                 if (value == 'read_all') {
@@ -263,7 +274,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             const SizedBox(height: 16),
             Text(
               _error!,
-              style: GoogleFonts.inter(color: AppColors.textSecondary),
+              style: GoogleFonts.inter(color: Theme.of(context).textTheme.bodyMedium?.color),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -283,6 +294,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
 
     if (_notifications.isEmpty) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -290,13 +302,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: isDark ? AppColors.surface : Colors.white,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.glassBorder),
+                border: Border.all(color: isDark ? AppColors.glassBorder : AppColors.primary.withOpacity(0.12)),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.notifications_none_rounded,
-                color: AppColors.textSecondary,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
                 size: 48,
               ),
             ),
@@ -306,13 +318,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               style: GoogleFonts.outfit(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'ستظهر جميع إشعاراتك وتنبيهاتك هنا',
-              style: GoogleFonts.inter(color: AppColors.textSecondary),
+              style: GoogleFonts.inter(color: Theme.of(context).textTheme.bodyMedium?.color),
             ),
           ],
         ),
@@ -328,6 +340,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         separatorBuilder: (context, index) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final notification = _notifications[index];
+          final isDark = Theme.of(context).brightness == Brightness.dark;
           return Dismissible(
             key: Key('notification_${notification.id}'),
             background: Container(
@@ -347,18 +360,34 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               _deleteNotification(notification);
             },
             child: InkWell(
-              onTap: () {
+              onTap: () async {
                 _markAsRead(notification);
-                // Here we could add navigation logic similar to NotificationService logic
-                // if the API returns navigation data payload in the future.
+                // First try navigation data from API
+                if (notification.hasNavigationData) {
+                  NotificationService.handleNotificationData(
+                    notification.toNavigationData(),
+                  );
+                  return;
+                }
+                // Fallback: try cached FCM data
+                final cachedData = await NotificationCacheService.findCachedData(
+                  notification.title,
+                  notification.body,
+                );
+                if (cachedData != null) {
+                  print('📦 Found cached data for notification: $cachedData');
+                  NotificationService.handleNotificationData(cachedData);
+                } else {
+                  print('⚠️ No navigation data found for: ${notification.title}');
+                }
               },
               borderRadius: BorderRadius.circular(16),
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: notification.isRead
-                      ? AppColors.surface.withOpacity(0.5)
-                      : AppColors.surface,
+                      ? (isDark ? AppColors.surface.withOpacity(0.5) : Colors.white.withOpacity(0.6))
+                      : (isDark ? AppColors.surface : Colors.white),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: notification.isRead
@@ -383,7 +412,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: notification.isRead
-                            ? AppColors.textSecondary.withOpacity(0.1)
+                            ? Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.15)
                             : AppColors.primary.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
@@ -392,7 +421,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             ? Icons.notifications_outlined
                             : Icons.notifications_active_rounded,
                         color: notification.isRead
-                            ? AppColors.textSecondary
+                            ? Theme.of(context).textTheme.bodyMedium?.color
                             : AppColors.primary,
                         size: 24,
                       ),
@@ -412,7 +441,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                     fontWeight: notification.isRead
                                         ? FontWeight.w500
                                         : FontWeight.bold,
-                                    color: AppColors.textPrimary,
+                                    color: Theme.of(context).textTheme.bodyLarge?.color,
                                     fontSize: 16,
                                   ),
                                 ),
@@ -421,7 +450,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 _formatDate(notification.timestamp),
                                 style: GoogleFonts.inter(
                                   fontSize: 12,
-                                  color: AppColors.textSecondary,
+                                  color: Theme.of(context).textTheme.bodyMedium?.color,
                                 ),
                               ),
                             ],
@@ -431,8 +460,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             notification.body,
                             style: GoogleFonts.inter(
                               color: notification.isRead
-                                  ? AppColors.textSecondary
-                                  : AppColors.textPrimary.withOpacity(0.8),
+                                  ? Theme.of(context).textTheme.bodyMedium?.color
+                                  : Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.8),
                               fontSize: 14,
                             ),
                           ),

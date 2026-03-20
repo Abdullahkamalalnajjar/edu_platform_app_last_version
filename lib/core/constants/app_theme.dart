@@ -484,7 +484,7 @@ class AppTheme {
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: const Color(0xFFDAD9D5), width: 1),
+          side: BorderSide(color: const Color(0xFFE5D5D5), width: 1),
         ),
       ),
 
@@ -533,7 +533,7 @@ class AppTheme {
 
       // Divider
       dividerTheme: const DividerThemeData(
-        color: Color(0xFFEAE9E5),
+        color: Color(0xFFF0E0E0),
         thickness: 1,
         space: 1,
       ),
@@ -566,7 +566,7 @@ class AppTheme {
           fontSize: 13,
           fontWeight: FontWeight.w500,
         ),
-        side: BorderSide(color: const Color(0xFFDAD9D5)),
+        side: BorderSide(color: const Color(0xFFE5D5D5)),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -588,7 +588,7 @@ class AppTheme {
         }),
         trackColor: MaterialStateProperty.resolveWith((states) {
           if (states.contains(MaterialState.selected)) return AppColors.primary;
-          return const Color(0xFFDAD9D5);
+          return const Color(0xFFE5D5D5);
         }),
       ),
 

@@ -72,9 +72,10 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: isDark ? const Color(0xFF0A0A0A) : Theme.of(context).scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -82,9 +83,9 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor.withOpacity(0.8),
+            color: isDark ? Theme.of(context).cardColor.withOpacity(0.8) : Colors.white.withOpacity(0.9),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.glassBorder),
+            border: Border.all(color: isDark ? AppColors.glassBorder : AppColors.primary.withOpacity(0.15)),
           ),
           child: IconButton(
             icon: Icon(
@@ -107,7 +108,7 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
       ),
       body: Stack(
         children: [
-          _buildAnimatedBackground(size),
+          if (isDark) _buildAnimatedBackground(size),
           _buildDecorativeOrbs(size),
           SafeArea(child: _buildBody()),
         ],
@@ -186,6 +187,7 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
   }
 
   Widget _buildHeader() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 10, 24, 20),
       child: Column(
@@ -219,9 +221,9 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
+                  color: isDark ? Theme.of(context).cardColor : Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.glassBorder),
+                  border: Border.all(color: isDark ? AppColors.glassBorder : AppColors.primary.withOpacity(0.15)),
                 ),
                 child: Text(
                   '${_teachers.length}',
@@ -239,9 +241,16 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
           // Search Bar
           Container(
             decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
+              color: isDark ? Theme.of(context).cardColor : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.glassBorder),
+              border: Border.all(color: isDark ? AppColors.glassBorder : AppColors.primary.withOpacity(0.12)),
+              boxShadow: isDark ? null : [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.06),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: TextField(
               onChanged: (value) {
@@ -249,10 +258,10 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
                   _searchQuery = value;
                 });
               },
-              style: GoogleFonts.inter(color: AppColors.textPrimary),
+              style: GoogleFonts.inter(color: Theme.of(context).textTheme.bodyLarge?.color),
               decoration: InputDecoration(
                 hintText: 'ابحث عن معلم...',
-                hintStyle: GoogleFonts.inter(color: AppColors.textSecondary),
+                hintStyle: GoogleFonts.inter(color: Theme.of(context).textTheme.bodySmall?.color),
                 prefixIcon: const Icon(
                   Icons.search_rounded,
                   color: AppColors.primary,
@@ -476,9 +485,9 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
   }
 
   Widget _buildDecorativeOrbs(Size size) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Stack(
       children: [
-        // Top-right red glow
         Positioned(
           top: -size.height * 0.08,
           right: -size.width * 0.15,
@@ -497,8 +506,8 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.primary.withOpacity(0.2),
-                        AppColors.primaryDark.withOpacity(0.05),
+                        AppColors.primary.withOpacity(isDark ? 0.2 : 0.08),
+                        AppColors.primaryDark.withOpacity(isDark ? 0.05 : 0.02),
                         Colors.transparent,
                       ],
                       stops: const [0.0, 0.5, 1.0],
@@ -509,7 +518,6 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
             },
           ),
         ),
-        // Bottom-left dark red glow
         Positioned(
           bottom: -size.height * 0.12,
           left: -size.width * 0.2,
@@ -528,8 +536,8 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.primaryDark.withOpacity(0.15),
-                        AppColors.primary.withOpacity(0.04),
+                        AppColors.primaryDark.withOpacity(isDark ? 0.15 : 0.06),
+                        AppColors.primary.withOpacity(isDark ? 0.04 : 0.02),
                         Colors.transparent,
                       ],
                       stops: const [0.0, 0.4, 1.0],

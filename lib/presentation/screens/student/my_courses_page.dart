@@ -72,73 +72,134 @@ class _MyCoursesPageState extends State<MyCoursesPage>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).cardColor,
-        elevation: 0,
-        automaticallyImplyLeading: false, // Hide back button since it's in nav
-        title: Row(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: isDark
+            ? const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF0A0A0A), Color(0xFF150808), Color(0xFF0D0505)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              )
+            : BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor),
+        child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  decoration: BoxDecoration(
+                    gradient: isDark
+                        ? const LinearGradient(
+                            colors: [Color(0xFF1A0A0A), Color(0xFF120808)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: isDark ? AppColors.primary.withOpacity(0.12) : Colors.transparent,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(isDark ? 0.08 : 0.25),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: const Icon(
-                Icons.play_lesson_rounded,
-                color: Colors.white,
-                size: 20,
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(isDark ? 0.08 : 0.2),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          Icons.play_lesson_rounded,
+                          color: isDark ? AppColors.primary : Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'دوراتي',
+                            style: GoogleFonts.tajawal(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            'إدارة الكورسات والاشتراكات',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: Colors.white.withOpacity(isDark ? 0.5 : 0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-            const SizedBox(width: 12),
-            Text(
-              'دوراتي',
-              style: GoogleFonts.outfit(
-                color: Theme.of(context).textTheme.bodyLarge?.color,
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF141010) : Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isDark ? AppColors.primary.withOpacity(0.08) : Theme.of(context).dividerColor.withOpacity(0.5),
+                  ),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: isDark ? Colors.white.withOpacity(0.4) : AppColors.textSecondary,
+                  indicator: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  dividerColor: Colors.transparent,
+                  labelStyle: GoogleFonts.tajawal(fontWeight: FontWeight.w700, fontSize: 13),
+                  unselectedLabelStyle: GoogleFonts.tajawal(fontWeight: FontWeight.w500, fontSize: 13),
+                  tabs: const [
+                    Tab(text: 'مقبولة'),
+                    Tab(text: 'قيد الانتظار'),
+                    Tab(text: 'مرفوضة'),
+                  ],
+                ),
               ),
             ),
-          ],
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textSecondary,
-          indicatorColor: AppColors.primary,
-          indicatorWeight: 3,
-          labelStyle: GoogleFonts.outfit(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
-          tabs: const [
-            Tab(text: 'مقبولة'),
-            Tab(text: 'قيد الانتظار'),
-            Tab(text: 'مرفوضة'),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                  : TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildCourseList(_approvedCourses, 'Approved'),
+                        _buildCourseList(_pendingCourses, 'Pending'),
+                        _buildCourseList(_rejectedCourses, 'Rejected'),
+                      ],
+                    ),
+            ),
           ],
         ),
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildCourseList(_approvedCourses, 'Approved'),
-                _buildCourseList(_pendingCourses, 'Pending'),
-                _buildCourseList(_rejectedCourses, 'Rejected'),
-              ],
-            ),
     );
   }
 
@@ -150,20 +211,16 @@ class _MyCoursesPageState extends State<MyCoursesPage>
           children: [
             Icon(
               Icons.library_books_outlined,
-              size: 64,
-              color: AppColors.textSecondary.withOpacity(0.5),
+              size: 56,
+              color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.3),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             Text(
-              'لا توجد دورات ${status == 'Approved'
-                  ? 'مقبولة'
-                  : status == 'Pending'
-                  ? 'قيد الانتظار'
-                  : 'مرفوضة'}',
-              style: GoogleFonts.outfit(
-                color: Theme.of(context).textTheme.bodyMedium?.color,
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
+              'لا توجد دورات ${status == 'Approved' ? 'مقبولة' : status == 'Pending' ? 'قيد الانتظار' : 'مرفوضة'}',
+              style: GoogleFonts.tajawal(
+                color: Theme.of(context).textTheme.bodySmall?.color,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -174,9 +231,9 @@ class _MyCoursesPageState extends State<MyCoursesPage>
     return RefreshIndicator(
       onRefresh: _fetchAllSubscriptions,
       color: AppColors.primary,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).cardColor,
       child: ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
         itemCount: courses.length,
         itemBuilder: (context, index) {
           final subscription = courses[index];
@@ -187,21 +244,22 @@ class _MyCoursesPageState extends State<MyCoursesPage>
   }
 
   Widget _buildSubscriptionCard(CourseSubscription sub, String status) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     Color statusColor;
     IconData statusIcon;
 
     switch (status) {
       case 'Approved':
-        statusColor = AppColors.success;
-        statusIcon = Icons.check_circle_outline_rounded;
+        statusColor = const Color(0xFF4ECDC4);
+        statusIcon = Icons.check_circle_rounded;
         break;
       case 'Pending':
-        statusColor = AppColors.warning;
-        statusIcon = Icons.hourglass_empty_rounded;
+        statusColor = const Color(0xFFFFD93D);
+        statusIcon = Icons.hourglass_top_rounded;
         break;
       case 'Rejected':
-        statusColor = AppColors.error;
-        statusIcon = Icons.cancel_outlined;
+        statusColor = const Color(0xFFFF6B6B);
+        statusIcon = Icons.cancel_rounded;
         break;
       default:
         statusColor = AppColors.textSecondary;
@@ -209,40 +267,45 @@ class _MyCoursesPageState extends State<MyCoursesPage>
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.glassBorder),
-        boxShadow: AppColors.subtleShadow,
+        gradient: isDark
+            ? const LinearGradient(
+                colors: [Color(0xFF141010), Color(0xFF1A0E0E)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              )
+            : null,
+        color: isDark ? null : Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark
+              ? statusColor.withOpacity(0.1)
+              : Theme.of(context).dividerColor.withOpacity(0.5),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           onTap: status == 'Approved'
               ? () {
-                  // Debug: Print subscription data
-                  print('--- Opening Course ---');
-                  print('Course ID: ${sub.courseId}');
-                  print('Course Name: ${sub.courseName}');
-                  print('Lectures count: ${sub.lectures?.length ?? 0}');
-                  if (sub.lectures != null) {
-                    print('Lectures data: ${sub.lectures}');
-                  }
-
-                  // Create Course object from subscription data with all necessary fields
                   final course = Course(
                     id: sub.courseId,
                     title: sub.courseName,
                     gradeYear: sub.educationStageId,
                     educationStageName: sub.educationStageName,
-                    teacherId: 0, // Not needed for student view
+                    teacherId: 0,
                     teacherName: sub.teacherName,
                     lectures: sub.lectures != null
                         ? (sub.lectures as List).map((e) {
-                            print('Parsing lecture: $e');
-                            // Add courseId to lecture data if missing
                             final lectureData = Map<String, dynamic>.from(e);
                             if (!lectureData.containsKey('courseId')) {
                               lectureData['courseId'] = sub.courseId;
@@ -251,15 +314,24 @@ class _MyCoursesPageState extends State<MyCoursesPage>
                           }).toList()
                         : [],
                   );
-
-                  print(
-                    'Course created with ${course.lectures.length} lectures',
-                  );
-
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => CourseDetailsScreen(course: course),
+                    PageRouteBuilder(
+                      transitionDuration: const Duration(milliseconds: 500),
+                      reverseTransitionDuration: const Duration(milliseconds: 400),
+                      pageBuilder: (context, animation, secondaryAnimation) =>
+                          CourseDetailsScreen(course: course),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: ScaleTransition(
+                            scale: Tween<double>(begin: 0.92, end: 1.0).animate(
+                              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                            ),
+                            child: child,
+                          ),
+                        );
+                      },
                     ),
                   );
                 }
@@ -268,85 +340,82 @@ class _MyCoursesPageState extends State<MyCoursesPage>
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // Icon Box
                 Container(
-                  width: 50,
-                  height: 50,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        statusColor.withOpacity(0.2),
+                        statusColor.withOpacity(0.08),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: statusColor.withOpacity(0.12),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  child: Icon(
-                    Icons.school_rounded,
-                    color: statusColor,
-                    size: 24,
-                  ),
+                  child: Icon(Icons.school_rounded, color: statusColor, size: 22),
                 ),
-                const SizedBox(width: 16),
-
-                // Content
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         sub.courseName,
-                        style: GoogleFonts.outfit(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                        style: GoogleFonts.tajawal(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
                           color: Theme.of(context).textTheme.bodyLarge?.color,
                         ),
                       ),
                       const SizedBox(height: 4),
                       if (sub.teacherName.isNotEmpty)
                         Text(
-                          'المعلم: ${sub.teacherName}',
+                          sub.teacherName,
                           style: GoogleFonts.inter(
                             fontSize: 12,
-                            color: Theme.of(
-                              context,
-                            ).textTheme.bodyMedium?.color,
+                            color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
                           ),
                         ),
-                      if (sub.educationStageName.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          sub.educationStageName,
-                          style: GoogleFonts.inter(
-                            fontSize: 11,
-                            color: AppColors.textSecondary.withOpacity(0.8),
-                          ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(isDark ? 0.12 : 0.1),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      ],
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(statusIcon, size: 12, color: statusColor),
-                          const SizedBox(width: 4),
-                          Text(
-                            status == 'Approved'
-                                ? 'مقبولة'
-                                : status == 'Pending'
-                                ? 'قيد الانتظار'
-                                : 'مرفوضة',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: statusColor,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(statusIcon, size: 12, color: statusColor),
+                            const SizedBox(width: 4),
+                            Text(
+                              status == 'Approved' ? 'مقبولة' : status == 'Pending' ? 'قيد الانتظار' : 'مرفوضة',
+                              style: GoogleFonts.tajawal(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: statusColor,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-
-                // Arrow if approved
                 if (status == 'Approved')
                   Icon(
                     Icons.arrow_forward_ios_rounded,
-                    size: 16,
-                    color: AppColors.textSecondary.withOpacity(0.5),
+                    size: 14,
+                    color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.4),
                   ),
               ],
             ),

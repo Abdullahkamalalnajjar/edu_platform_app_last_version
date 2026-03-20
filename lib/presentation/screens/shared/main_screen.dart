@@ -36,8 +36,8 @@ class _MainScreenState extends State<MainScreen> {
 
   List<Widget> get _pages => [
         _HomeNavigator(navigatorKey: _homeNavigatorKey),
-        const SafeArea(child: MyCoursesPage()),
-        const SafeArea(child: _ProfilePlaceholder()),
+        const MyCoursesPage(),
+        const _ProfilePlaceholder(),
         SafeArea(
           child: SettingsScreen(
             onLogout: _handleLogout,
@@ -543,200 +543,286 @@ class _ProfilePlaceholderState extends State<_ProfilePlaceholder> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.person_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'الملف الشخصي',
-              style: GoogleFonts.outfit(
-                color: Theme.of(context).textTheme.titleLarge?.color,
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: AppColors.primaryGradient,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: isDark
+            ? const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF0A0A0A), Color(0xFF150808), Color(0xFF0D0505)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              )
+            : BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor),
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              )
+            : SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 60, 20, 100),
+                child: Column(
+                  children: [
+                    // Profile Header Card
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        shape: BoxShape.circle,
-                      ),
-                      child: ClipOval(
-                        child: SizedBox(
-                          width: 100,
-                          height: 100,
-                          child: _photoUrl != null
-                              ? Image.network(
-                                  _photoUrl!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      color: Theme.of(context).cardColor,
-                                      child: Icon(
-                                        Icons.person_rounded,
-                                        size: 50,
-                                        color: Theme.of(
-                                          context,
-                                        ).textTheme.bodyLarge?.color,
-                                      ),
-                                    );
-                                  },
-                                )
-                              : Container(
-                                  color: Theme.of(context).cardColor,
-                                  child: Icon(
-                                    Icons.person_rounded,
-                                    size: 50,
-                                    color: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge?.color,
-                                  ),
-                                ),
+                        gradient: isDark
+                            ? const LinearGradient(
+                                colors: [Color(0xFF1A0A0A), Color(0xFF120808)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : AppColors.primaryGradient,
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: isDark
+                              ? AppColors.primary.withOpacity(0.12)
+                              : Colors.transparent,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(isDark ? 0.08 : 0.25),
+                            blurRadius: 24,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // Avatar
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.3),
+                                width: 2.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withOpacity(0.3),
+                                  blurRadius: 20,
+                                  spreadRadius: 4,
+                                ),
+                              ],
+                            ),
+                            child: ClipOval(
+                              child: SizedBox(
+                                width: 90,
+                                height: 90,
+                                child: _photoUrl != null
+                                    ? Image.network(
+                                        _photoUrl!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (c, e, s) => Container(
+                                          color: Colors.white.withOpacity(0.1),
+                                          child: const Icon(Icons.person_rounded,
+                                              size: 45, color: Colors.white70),
+                                        ),
+                                      )
+                                    : Container(
+                                        color: Colors.white.withOpacity(0.1),
+                                        child: const Icon(Icons.person_rounded,
+                                            size: 45, color: Colors.white70),
+                                      ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Text(
+                            _userName ?? 'اسم الطالب',
+                            style: GoogleFonts.tajawal(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(isDark ? 0.08 : 0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              _userRole == 'Student' ? '🎓 طالب' : (_userRole ?? 'طالب'),
+                              style: GoogleFonts.tajawal(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white.withOpacity(0.9),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    _userName ?? 'اسم الطالب',
-                    style: GoogleFonts.outfit(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).textTheme.displayLarge?.color,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      _userRole == 'Student' ? 'طالب' : (_userRole ?? 'طالب'),
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).primaryColor,
+
+                    const SizedBox(height: 24),
+
+                    // Info Section
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: isDark
+                            ? const LinearGradient(
+                                colors: [Color(0xFF141010), Color(0xFF1A0E0E)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : null,
+                        color: isDark ? null : Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isDark
+                              ? AppColors.primary.withOpacity(0.1)
+                              : Theme.of(context).dividerColor.withOpacity(0.5),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          _buildInfoRow(
+                            Icons.email_outlined,
+                            'البريد الإلكتروني',
+                            _userEmail ?? 'غير متوفر',
+                            const Color(0xFF74B9FF),
+                            showDivider: true,
+                          ),
+                          if (_studentPhoneNumber != null &&
+                              _studentPhoneNumber!.isNotEmpty)
+                            _buildInfoRow(
+                              Icons.phone_android_rounded,
+                              'رقم هاتف الطالب',
+                              _studentPhoneNumber!,
+                              const Color(0xFF4ECDC4),
+                              showDivider: true,
+                            ),
+                          if (_parentPhoneNumber != null &&
+                              _parentPhoneNumber!.isNotEmpty)
+                            _buildInfoRow(
+                              Icons.phone_rounded,
+                              'رقم هاتف ولي الأمر',
+                              _parentPhoneNumber!,
+                              const Color(0xFFFFD93D),
+                              showDivider: true,
+                            ),
+                          if (_governorate != null && _governorate!.isNotEmpty)
+                            _buildInfoRow(
+                              Icons.location_city_rounded,
+                              'المحافظة',
+                              _governorate!,
+                              const Color(0xFF6C5CE7),
+                              showDivider: true,
+                            ),
+                          if (_city != null && _city!.isNotEmpty)
+                            _buildInfoRow(
+                              Icons.place_rounded,
+                              'المدينة',
+                              _city!,
+                              const Color(0xFFFF6B6B),
+                              showDivider: true,
+                            ),
+                          _buildInfoRow(
+                            Icons.badge_rounded,
+                            'نوع الحساب',
+                            _userRole == 'Student' ? 'طالب' : (_userRole ?? 'طالب'),
+                            const Color(0xFFA29BFE),
+                            showDivider: false,
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 32),
-                  _buildInfoTile(
-                    'البريد الإلكتروني',
-                    _userEmail ?? 'غير متوفر',
-                  ),
-                  const SizedBox(height: 16),
-                  if (_studentPhoneNumber != null &&
-                      _studentPhoneNumber!.isNotEmpty) ...[
-                    _buildInfoTile('رقم هاتف الطالب', _studentPhoneNumber!),
-                    const SizedBox(height: 16),
                   ],
-                  if (_parentPhoneNumber != null &&
-                      _parentPhoneNumber!.isNotEmpty) ...[
-                    _buildInfoTile('رقم هاتف ولي الأمر', _parentPhoneNumber!),
-                    const SizedBox(height: 16),
-                  ],
-                  if (_governorate != null && _governorate!.isNotEmpty) ...[
-                    _buildInfoTile('المحافظة', _governorate!),
-                    const SizedBox(height: 16),
-                  ],
-                  if (_city != null && _city!.isNotEmpty) ...[
-                    _buildInfoTile('المدينة', _city!),
-                    const SizedBox(height: 16),
-                  ],
-                  _buildInfoTile(
-                    'نوع الحساب',
-                    _userRole == 'Student' ? 'طالب' : (_userRole ?? 'طالب'),
-                  ),
-                ],
+                ),
               ),
-            ),
+      ),
     );
   }
 
-  Widget _buildInfoTile(String label, String value) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).dividerColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              color: Theme.of(context).textTheme.bodySmall?.color,
-              fontWeight: FontWeight.w500,
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value,
+    Color color, {
+    bool showDivider = true,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      color.withOpacity(0.2),
+                      color.withOpacity(0.08),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.1),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(icon, size: 20, color: color),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.6),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      value,
+                      style: GoogleFonts.tajawal(
+                        fontSize: 15,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (showDivider)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Divider(
+              height: 1,
+              color: isDark
+                  ? AppColors.primary.withOpacity(0.06)
+                  : Theme.of(context).dividerColor.withOpacity(0.3),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: GoogleFonts.inter(
-              fontSize: 16,
-              color: Theme.of(context).textTheme.bodyLarge?.color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 }

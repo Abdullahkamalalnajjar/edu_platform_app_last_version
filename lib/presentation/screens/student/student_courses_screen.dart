@@ -97,8 +97,9 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: isDark ? const Color(0xFF0A0A0A) : Theme.of(context).scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -106,16 +107,14 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
+            color: isDark ? Colors.white.withOpacity(0.08) : Colors.white.withOpacity(0.9),
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            border: Border.all(color: isDark ? Colors.white.withOpacity(0.1) : AppColors.primary.withOpacity(0.15)),
           ),
           child: IconButton(
             icon: Icon(
               Icons.arrow_back_ios_new_rounded,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Theme.of(context).iconTheme.color,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
               size: 20,
             ),
             onPressed: () => Navigator.pop(context),
@@ -124,9 +123,7 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
         title: Text(
           widget.subjectName,
           style: GoogleFonts.outfit(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.white
-                : Theme.of(context).textTheme.titleLarge?.color,
+            color: Theme.of(context).textTheme.titleLarge?.color,
             fontWeight: FontWeight.w600,
             fontSize: 20,
           ),
@@ -136,8 +133,8 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
       ),
       body: Stack(
         children: [
-          // Deep black background
-          Container(color: const Color(0xFF0A0A0A)),
+          // Deep background
+          if (isDark) Container(color: const Color(0xFF0A0A0A)),
 
           // Top-right red glow
           Positioned(
@@ -150,8 +147,8 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.primary.withOpacity(0.25),
-                    AppColors.primaryDark.withOpacity(0.08),
+                    AppColors.primary.withOpacity(isDark ? 0.25 : 0.08),
+                    AppColors.primaryDark.withOpacity(isDark ? 0.08 : 0.02),
                     Colors.transparent,
                   ],
                   stops: const [0.0, 0.5, 1.0],
@@ -171,8 +168,8 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.primaryDark.withOpacity(0.15),
-                    AppColors.primary.withOpacity(0.05),
+                    AppColors.primaryDark.withOpacity(isDark ? 0.15 : 0.06),
+                    AppColors.primary.withOpacity(isDark ? 0.05 : 0.02),
                     Colors.transparent,
                   ],
                   stops: const [0.0, 0.4, 1.0],
@@ -192,7 +189,7 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.accent.withOpacity(0.1),
+                    AppColors.accent.withOpacity(isDark ? 0.1 : 0.04),
                     Colors.transparent,
                   ],
                 ),
@@ -205,7 +202,7 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openWhatsApp,
-        backgroundColor: const Color(0xFF25D366), // WhatsApp Green
+        backgroundColor: const Color(0xFF25D366),
         elevation: 4,
         child: const Icon(Icons.mark_chat_unread_rounded, color: Colors.white),
       ),

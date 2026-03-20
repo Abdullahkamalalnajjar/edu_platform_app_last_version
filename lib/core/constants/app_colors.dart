@@ -23,18 +23,18 @@ class AppColors {
   static const Color textSecondary = Color(0xFFB0B0B0); // Light Grey
   static const Color textMuted = Color(0xFF707070); // Muted Grey
 
-  // Light Theme Colors — Premium 2026 Warm Minimal Palette
-  static const Color backgroundLight = Color(0xFFF5F4F2);   // Warm Creamy Off-White
-  static const Color surfaceLightMode = Color(0xFFFFFFFF);   // Pure White surface
-  static const Color surfaceLightVariant = Color(0xFFEFEDE9); // Warm grey surface
-  static const Color cardLight = Color(0xFFFFFFFF);           // Clean White Card
+  // Light Theme Colors — White with subtle red tint
+  static const Color backgroundLight = Color(0xFFFDF5F5);   // Soft pinkish white
+  static const Color surfaceLightMode = Color(0xFFFFF9F9);   // Very light rose white
+  static const Color surfaceLightVariant = Color(0xFFF5ECEC); // Light warm blush
+  static const Color cardLight = Color(0xFFFFFAFA);           // Faint warm white
 
   static const Color textPrimaryLight = Color(0xFF1A1A2E);   // Deep Navy-Black
   static const Color textSecondaryLight = Color(0xFF5A5A72); // Muted Indigo-Grey
   static const Color textMutedLight = Color(0xFF9A9AB0);     // Light Muted
 
-  static const Color inputFillLight = Color(0xFFF0EFEC);
-  static const Color inputBorderLight = Color(0xFFDAD9D5);
+  static const Color inputFillLight = Color(0xFFF8F0F0);
+  static const Color inputBorderLight = Color(0xFFE5D5D5);
 
   // Functional Colors
   static const Color error = Color(0xFFFF5252); // Bright Red
