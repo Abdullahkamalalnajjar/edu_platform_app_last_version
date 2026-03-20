@@ -260,7 +260,7 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
         physics: const BouncingScrollPhysics(),
         slivers: [
           SliverToBoxAdapter(child: _buildHeader()),
-          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+          const SliverToBoxAdapter(child: SizedBox(height: 4)),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             sliver: filteredSubjects.isEmpty
@@ -301,7 +301,7 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -437,7 +437,7 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
               Container(
                 width: 60,
                 height: 4,
@@ -480,11 +480,29 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => SelectTeacherScreen(
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 600),
+            reverseTransitionDuration: const Duration(milliseconds: 450),
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                SelectTeacherScreen(
               subjectId: subject.id,
               subjectName: subject.name,
             ),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              final scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+              );
+              final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOut),
+              );
+              return FadeTransition(
+                opacity: fadeAnimation,
+                child: ScaleTransition(
+                  scale: scaleAnimation,
+                  child: child,
+                ),
+              );
+            },
           ),
         );
       },

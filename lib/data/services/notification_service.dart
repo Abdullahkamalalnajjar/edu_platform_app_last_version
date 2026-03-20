@@ -78,6 +78,7 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
   static bool _isInitialized = false;
+
   /// Stores the initial message data when app is launched from terminated state.
   /// This is processed later when the navigator is ready.
   static Map<String, dynamic>? _pendingNotificationData;
@@ -282,7 +283,8 @@ class NotificationService {
       final studentScore = data['studentScore'];
       final maxScore = data['maxScore'];
       if (studentScore != null && maxScore != null) {
-        body = 'قام $studentName بتسليم $examTitle - الدرجة: $studentScore / $maxScore';
+        body =
+            'قام $studentName بتسليم $examTitle - الدرجة: $studentScore / $maxScore';
       } else {
         body = 'قام $studentName بتسليم $examTitle';
       }

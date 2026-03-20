@@ -242,8 +242,28 @@ class _MainScreenState extends State<MainScreen> {
           : SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        extendBody: true,
         // Removed AppBar to allow pages to manage their own headers
-        body: IndexedStack(index: _currentIndex, children: _pages),
+        body: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 400),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) {
+            return FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 0.92, end: 1.0).animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                ),
+                child: child,
+              ),
+            );
+          },
+          child: KeyedSubtree(
+            key: ValueKey<int>(_currentIndex),
+            child: _pages[_currentIndex],
+          ),
+        ),
         bottomNavigationBar: _buildBottomNav(),
       ),
     );
@@ -251,7 +271,13 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildBottomNav() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF1A1A1A) : AppColors.primary;
+
+    final colors = [
+      const Color(0xFFFF6B6B),
+      const Color(0xFF4ECDC4),
+      const Color(0xFFFFD93D),
+      const Color(0xFF6C5CE7),
+    ];
 
     final items = [
       _NavItem(Icons.grid_view_rounded, 'المواد'),
@@ -263,84 +289,135 @@ class _MainScreenState extends State<MainScreen> {
     return SafeArea(
       top: false,
       child: Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(40),
-        boxShadow: [
-          BoxShadow(
-            color: bgColor.withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+        margin: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+        height: 72,
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(16),
+            topRight: Radius.circular(16),
           ),
-        ],
-      ),
-      child: Row(
-        children: List.generate(items.length, (index) {
-          final isSelected = _currentIndex == index;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () {
-                if (index == 0) {
-                  _homeNavigatorKey.currentState
-                      ?.popUntil((route) => route.isFirst);
-                }
-                setState(() {
-                  _currentIndex = index;
-                });
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOutCubic,
-                padding: EdgeInsets.symmetric(
-                  horizontal: isSelected ? 12 : 8,
-                  vertical: isSelected ? 8 : 8,
+          gradient: isDark
+              ? const LinearGradient(
+                  colors: [Color(0xFF0D0D0D), Color(0xFF1A0508)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                )
+              : LinearGradient(
+                  colors: [AppColors.primary, AppColors.primary.withOpacity(0.9)],
                 ),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? (isDark
-                          ? AppColors.primary.withOpacity(0.2)
-                          : Colors.white)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: Row(
+          border: Border.all(
+            color: isDark
+                ? AppColors.primary.withOpacity(0.15)
+                : Colors.white.withOpacity(0.2),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? AppColors.primary.withOpacity(0.06)
+                  : AppColors.primary.withOpacity(0.3),
+              blurRadius: 30,
+              offset: const Offset(0, 10),
+            ),
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.5 : 0.15),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: List.generate(items.length, (index) {
+            final isSelected = _currentIndex == index;
+            final itemColor = colors[index];
+            return Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  if (index == 0) {
+                    _homeNavigatorKey.currentState
+                        ?.popUntil((route) => route.isFirst);
+                  }
+                  setState(() {
+                    _currentIndex = index;
+                  });
+                },
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      items[index].icon,
-                      size: 22,
-                      color: isSelected
-                          ? AppColors.primary
-                          : (isDark
-                              ? Colors.white.withOpacity(0.4)
-                              : Colors.white.withOpacity(0.6)),
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.85, end: isSelected ? 1.0 : 0.85),
+                      duration: const Duration(milliseconds: 350),
+                      curve: Curves.elasticOut,
+                      builder: (context, scale, child) {
+                        return Transform.scale(
+                          scale: scale,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOutCubic,
+                            padding: EdgeInsets.all(isSelected ? 10 : 8),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isSelected
+                                  ? itemColor.withOpacity(isDark ? 0.18 : 0.22)
+                                  : Colors.transparent,
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: itemColor.withOpacity(0.3),
+                                        blurRadius: 14,
+                                        spreadRadius: 1,
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Icon(
+                              items[index].icon,
+                              size: isSelected ? 22 : 20,
+                              color: isSelected
+                                  ? itemColor
+                                  : (isDark
+                                      ? Colors.white.withOpacity(0.4)
+                                      : Colors.white.withOpacity(0.6)),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                    if (isSelected) ...[
-                      const SizedBox(width: 6),
-                      Flexible(
+                    if (isSelected)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
                         child: Text(
                           items[index].label,
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
+                          style: GoogleFonts.tajawal(
+                            fontSize: 10,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
+                            color: itemColor,
                           ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
+                        ),
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Container(
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isDark
+                                ? Colors.white.withOpacity(0.15)
+                                : Colors.white.withOpacity(0.3),
+                          ),
                         ),
                       ),
-                    ],
                   ],
                 ),
               ),
-            ),
-          );
-        }),
+            );
+          }),
+        ),
       ),
-    ),
     );
   }
 }
