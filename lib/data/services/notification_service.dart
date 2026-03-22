@@ -536,11 +536,12 @@ class NotificationService {
     Map<String, dynamic> data, {
     required bool isLecture,
   }) async {
-    print('Processing course content notification...');
+    print('Processing course content notification: $data');
 
     final courseIdStr = data['courseId']?.toString();
     var courseId = int.tryParse(courseIdStr ?? '');
     final lectureId = int.tryParse(data['lectureId']?.toString() ?? '');
+    final examId = int.tryParse(data['examId']?.toString() ?? '');
 
     if (courseId == null) {
       if (lectureId != null) {
@@ -552,19 +553,34 @@ class NotificationService {
             validLectureResponse.data != null) {
           courseId = validLectureResponse.data!.courseId;
           print('✅ Found courseId: $courseId from lecture');
-        } else {
-          print('❌ Could not find courseId from lecture ID $lectureId');
-          return;
         }
-      } else {
-        print('❌ Invalid courseId and no lectureId in notification');
+      }
+
+      // Try via examId if still null
+      if (courseId == null && examId != null) {
+        print('⚠️ Trying to find courseId via examId: $examId');
+        final examResponse = await _courseService.getExamById(examId);
+        if (examResponse.succeeded && examResponse.data != null) {
+          // Get courseId from the exam's lecture
+          final examLectureId = examResponse.data!.lectureId;
+          final lectureResponse = await _courseService.getLectureById(examLectureId);
+          if (lectureResponse.succeeded && lectureResponse.data != null) {
+            courseId = lectureResponse.data!.courseId;
+            print('✅ Found courseId: $courseId from exam -> lecture');
+          }
+        }
+      }
+
+      if (courseId == null) {
+        print('❌ Could not determine courseId from notification data');
+        _navigateToScreen(const MyCoursesPage(initialTabIndex: 0));
         return;
       }
     }
 
     // Fetch full course details and navigate
     print('Fetching course details for ID: $courseId');
-    final response = await _courseService.getCourseById(courseId!);
+    final response = await _courseService.getCourseById(courseId);
 
     if (response.succeeded && response.data != null) {
       print('Course fetched successfully. Navigating to details.');
@@ -674,7 +690,7 @@ class NotificationService {
   }
 
   /// Handle exam notification with lectureId
-  static void _handleExamNotification(Map<String, dynamic> data) {
+  static Future<void> _handleExamNotification(Map<String, dynamic> data) async {
     final lectureId = int.tryParse(data['lectureId']?.toString() ?? '');
     final examId = int.tryParse(data['examId']?.toString() ?? '');
     final lectureTitle = data['lectureName'] ??
@@ -684,8 +700,21 @@ class NotificationService {
 
     if (lectureId != null) {
       _navigateToExam(lectureId, lectureTitle, examId: examId);
+    } else if (examId != null) {
+      // Fallback: fetch exam details to get lectureId
+      print('⚠️ lectureId missing, fetching exam details for examId: $examId');
+      final response = await _courseService.getExamById(examId);
+      if (response.succeeded && response.data != null) {
+        final exam = response.data!;
+        final title = exam.lectureName ??
+            (exam.title.isNotEmpty ? exam.title : lectureTitle);
+        _navigateToExam(exam.lectureId, title, examId: exam.id);
+      } else {
+        print('❌ Could not fetch exam details: ${response.message}');
+        _navigateToScreen(const MyCoursesPage(initialTabIndex: 0));
+      }
     } else {
-      print('❌ Invalid lectureId in notification');
+      print('❌ Invalid lectureId and examId in notification');
     }
   }
 

@@ -75,7 +75,9 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0A0A0A) : Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: isDark
+          ? const Color(0xFF0A0A0A)
+          : Theme.of(context).scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -83,9 +85,14 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: isDark ? Theme.of(context).cardColor.withOpacity(0.8) : Colors.white.withOpacity(0.9),
+            color: isDark
+                ? Theme.of(context).cardColor.withOpacity(0.8)
+                : Colors.white.withOpacity(0.9),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isDark ? AppColors.glassBorder : AppColors.primary.withOpacity(0.15)),
+            border: Border.all(
+                color: isDark
+                    ? AppColors.glassBorder
+                    : AppColors.primary.withOpacity(0.15)),
           ),
           child: IconButton(
             icon: Icon(
@@ -223,7 +230,10 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
                 decoration: BoxDecoration(
                   color: isDark ? Theme.of(context).cardColor : Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: isDark ? AppColors.glassBorder : AppColors.primary.withOpacity(0.15)),
+                  border: Border.all(
+                      color: isDark
+                          ? AppColors.glassBorder
+                          : AppColors.primary.withOpacity(0.15)),
                 ),
                 child: Text(
                   '${_teachers.length}',
@@ -243,14 +253,19 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
             decoration: BoxDecoration(
               color: isDark ? Theme.of(context).cardColor : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isDark ? AppColors.glassBorder : AppColors.primary.withOpacity(0.12)),
-              boxShadow: isDark ? null : [
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.06),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              border: Border.all(
+                  color: isDark
+                      ? AppColors.glassBorder
+                      : AppColors.primary.withOpacity(0.12)),
+              boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.06),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
             ),
             child: TextField(
               onChanged: (value) {
@@ -258,10 +273,12 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen>
                   _searchQuery = value;
                 });
               },
-              style: GoogleFonts.inter(color: Theme.of(context).textTheme.bodyLarge?.color),
+              style: GoogleFonts.inter(
+                  color: Theme.of(context).textTheme.bodyLarge?.color),
               decoration: InputDecoration(
                 hintText: 'ابحث عن معلم...',
-                hintStyle: GoogleFonts.inter(color: Theme.of(context).textTheme.bodySmall?.color),
+                hintStyle: GoogleFonts.inter(
+                    color: Theme.of(context).textTheme.bodySmall?.color),
                 prefixIcon: const Icon(
                   Icons.search_rounded,
                   color: AppColors.primary,

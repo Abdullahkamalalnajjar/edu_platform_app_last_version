@@ -611,6 +611,97 @@ class CourseService {
     }
   }
 
+  /// Fetch ungraded submissions count from the backend.
+  /// Uses the /api/v1/exams/{examId}/ungraded-submissions endpoint.
+  Future<ApiResponse<int>> getUngradedSubmissionsCount(int examId) async {
+    try {
+      final token = await _tokenService.getToken();
+      final headers = {
+        ...ApiConstants.headers,
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+
+      final url = ApiConstants.getUngradedSubmissions(examId);
+      final response = await http.get(Uri.parse(url), headers: headers);
+      final body = jsonDecode(response.body);
+
+      if (body['succeeded'] == true) {
+        final dataList = body['data'] as List? ?? [];
+        return ApiResponse<int>(
+          statusCode: body['statusCode'] ?? 200,
+          succeeded: true,
+          message: body['message'] ?? '',
+          data: dataList.length,
+        );
+      } else {
+        return ApiResponse(
+          statusCode: response.statusCode,
+          succeeded: false,
+          message: body['message'] ?? 'Failed to fetch ungraded submissions',
+        );
+      }
+    } catch (e) {
+      return ApiResponse(
+        statusCode: 500,
+        succeeded: false,
+        message: 'An error occurred: $e',
+      );
+    }
+  }
+
+  /// Delete a student exam result by its ID.
+  Future<ApiResponse<bool>> deleteExamResult(int studentExamResultId) async {
+    try {
+      final token = await _tokenService.getToken();
+      final headers = {
+        ...ApiConstants.headers,
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+
+      final url = ApiConstants.deleteExamResult(studentExamResultId);
+      final response = await http.delete(Uri.parse(url), headers: headers);
+
+      if (response.body.isEmpty) {
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          return ApiResponse(
+            statusCode: 200,
+            succeeded: true,
+            message: 'تم حذف النتيجة بنجاح',
+            data: true,
+          );
+        }
+        return ApiResponse(
+          statusCode: response.statusCode,
+          succeeded: false,
+          message: 'فشل في حذف النتيجة',
+        );
+      }
+
+      final body = jsonDecode(response.body);
+
+      if (body['succeeded'] == true) {
+        return ApiResponse(
+          statusCode: 200,
+          succeeded: true,
+          message: body['message'] ?? 'تم حذف النتيجة بنجاح',
+          data: true,
+        );
+      } else {
+        return ApiResponse(
+          statusCode: response.statusCode,
+          succeeded: false,
+          message: body['message'] ?? 'فشل في حذف النتيجة',
+        );
+      }
+    } catch (e) {
+      return ApiResponse(
+        statusCode: 500,
+        succeeded: false,
+        message: 'حدث خطأ: $e',
+      );
+    }
+  }
+
   Future<ApiResponse<NonSubmittedStudentsResponse>> getNonSubmittedStudents({
     required int examId,
     required int courseId,

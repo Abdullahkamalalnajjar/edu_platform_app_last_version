@@ -430,10 +430,10 @@ class _SelectSubjectScreenState extends State<SelectSubjectScreen>
                                     ],
                                   ),
                                   child: Text(
-                                    _unreadCount > 9 ? '9+' : '$_unreadCount',
+                                    '$_unreadCount',
                                     style: GoogleFonts.inter(
                                       color: Colors.white,
-                                      fontSize: 9,
+                                      fontSize: _unreadCount > 99 ? 7 : (_unreadCount > 9 ? 8 : 9),
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),

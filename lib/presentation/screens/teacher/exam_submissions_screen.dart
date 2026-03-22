@@ -39,6 +39,9 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
   bool _showingNonSubmittedOnly = false;
   bool _filterPendingOnly = false;
   int _totalManualQuestions = -1; // -1 = not fetched yet
+  int? _ungradedCount; // from backend ungraded-submissions endpoint
+  double _enrichProgress = 0.0; // 0.0 to 1.0
+  bool _isEnriching = false;
 
   @override
   void initState() {
@@ -46,6 +49,7 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
     _fetchSubmissions();
     _fetchNonSubmittedStats();
     _fetchManualQuestionCount();
+    _fetchUngradedCount();
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -59,8 +63,7 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
       if (mounted && response.succeeded && response.data != null) {
         final questions = response.data!.questions;
         final count = questions.where((q) {
-          return q.answerType == 'TextAnswer' ||
-              q.answerType == 'ImageAnswer';
+          return q.answerType == 'TextAnswer' || q.answerType == 'ImageAnswer';
         }).length;
         setState(() {
           _totalManualQuestions = count;
@@ -71,18 +74,22 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
   }
 
   /// Returns the real pending manual count for a submission.
-  /// If the server says nothing is pending at all, trust it (returns 0).
-  /// Otherwise uses _totalManualQuestions if fetched, or falls back to server.
+  /// Considers both server-reported values and local knowledge of manual question count.
   int _manualPending(ExamSubmission s) {
-    // If server says nothing is pending at all, trust it
-    if (s.pendingGradingAnswers == 0) return 0;
     // If we know the exact manual question count, compute accurately
     if (_totalManualQuestions > 0) {
-      return (_totalManualQuestions - s.manuallyGradedAnswers)
+      final pending = (_totalManualQuestions - s.manuallyGradedAnswers)
           .clamp(0, _totalManualQuestions);
+      return pending;
     }
-    // Fallback: use server's manual pending value
-    return s.manualPendingGradingAnswers;
+    // If server explicitly says graded, trust it
+    if (s.isGraded) return 0;
+    // Use server's manual pending value
+    if (s.manualPendingGradingAnswers > 0) return s.manualPendingGradingAnswers;
+    // Use server's general pending value
+    if (s.pendingGradingAnswers > 0) return s.pendingGradingAnswers;
+    // No info available
+    return 0;
   }
 
   Future<void> _fetchNonSubmittedStats() async {
@@ -122,13 +129,15 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
       // We might need to handle the display separately or merge them.
     }
 
-    // Apply pending filter — show only students whose badge says "بانتظار تصحيح"
+    // Apply pending filter — show only ungraded submissions (isGraded == false from backend)
     if (_filterPendingOnly) {
       baseList = baseList.where((s) {
         final hasGradedBy =
             s.gradedByName != null && s.gradedByName!.isNotEmpty;
         if (hasGradedBy) return false; // already graded by someone
-        return _manualPending(s) > 0; // has pending manual questions
+        // Use isGraded field from backend
+        if (!s.isGraded) return true;
+        return false;
       }).toList();
     }
 
@@ -163,6 +172,8 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
       });
       // Enrich submissions with gradedByName from detailed results
       _enrichSubmissionsWithGradedByName();
+      // Refresh ungraded count from backend
+      _fetchUngradedCount();
     } else {
       setState(() {
         _error = response.message;
@@ -171,40 +182,30 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
     }
   }
 
-  /// Silent refresh - updates data without showing loading indicator
-  /// Used when returning from exam screen to preserve scroll position
-  Future<void> _refreshSubmissionsSilently() async {
-    final response = widget.examId != null
-        ? await _courseService.getExamSubmissionsByExamId(widget.examId!)
-        : await _courseService.getExamSubmissions(widget.lectureId);
-    if (mounted && response.succeeded) {
-      setState(() {
-        _submissions = response.data ?? [];
-        _applySearch();
-      });
-      // Enrich submissions with gradedByName from detailed results
-      _enrichSubmissionsWithGradedByName();
-    }
-    // Also refresh non-submitted stats
-    _fetchNonSubmittedStats();
-  }
-
   /// Fetches detailed exam results for each submission to extract gradedByName.
   /// The submissions list API doesn't return gradedByName, but the individual
   /// student score API does (inside studentAnswers).
   Future<void> _enrichSubmissionsWithGradedByName() async {
     final examId = widget.examId;
-    if (examId == null) return;
+    if (examId == null || _submissions.isEmpty) return;
 
-    // Fetch all student results in parallel
-    final futures = _submissions.map((submission) async {
+    setState(() {
+      _isEnriching = true;
+      _enrichProgress = 0.0;
+    });
+
+    final total = _submissions.length;
+    int completed = 0;
+    final gradedByNameMap = <int, String>{};
+
+    // Process submissions and track progress
+    for (final submission in _submissions) {
       try {
         final result = await _courseService.getStudentExamResult(
           examId,
           studentId: submission.studentId,
         );
         if (result.succeeded && result.data != null) {
-          // Extract gradedByName from the first answer that has it
           String? gradedByName;
           for (final answer in result.data!.studentAnswers) {
             if (answer.gradedByName != null &&
@@ -213,20 +214,22 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
               break;
             }
           }
-          // Also check if the result itself has gradedByName
           gradedByName ??= result.data!.gradedByName;
-          return MapEntry(submission.studentId, gradedByName);
+          if (gradedByName != null && gradedByName.isNotEmpty) {
+            gradedByNameMap[submission.studentId] = gradedByName;
+          }
         }
       } catch (e) {
         print('Error fetching result for student ${submission.studentId}: $e');
       }
-      return MapEntry(submission.studentId, null);
-    }).toList();
 
-    final results = await Future.wait(futures);
-    final gradedByNameMap = Map.fromEntries(results
-        .where((e) => e.value != null)
-        .map((e) => MapEntry(e.key, e.value!)));
+      completed++;
+      if (mounted) {
+        setState(() {
+          _enrichProgress = completed / total;
+        });
+      }
+    }
 
     if (mounted && gradedByNameMap.isNotEmpty) {
       setState(() {
@@ -239,6 +242,12 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
           return s;
         }).toList();
         _applySearch();
+      });
+    }
+
+    if (mounted) {
+      setState(() {
+        _isEnriching = false;
       });
     }
   }
@@ -493,18 +502,29 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
     );
   }
 
+  /// Fetch ungraded submissions count from the backend.
+  Future<void> _fetchUngradedCount() async {
+    final examId = widget.examId;
+    if (examId == null) return;
+    try {
+      final response = await _courseService.getUngradedSubmissionsCount(examId);
+      if (mounted && response.succeeded && response.data != null) {
+        setState(() {
+          _ungradedCount = response.data;
+        });
+      }
+    } catch (_) {}
+  }
+
   Widget _buildSummaryCards() {
     final submittedCount =
         _nonSubmittedResponse?.submittedCount ?? _submissions.length;
     final totalEnrolled =
         _nonSubmittedResponse?.totalEnrolledStudents ?? _submissions.length;
     final nonSubmitted = _nonSubmittedResponse?.nonSubmittedCount ?? 0;
-    final pendingCount = _submissions.where((s) {
-      final hasGradedBy =
-          s.gradedByName != null && s.gradedByName!.isNotEmpty;
-      if (hasGradedBy) return false;
-      return _manualPending(s) > 0;
-    }).length;
+    // Use the backend ungraded count directly instead of computing locally
+    final pendingCount =
+        _ungradedCount ?? _submissions.where((s) => !s.isGraded).length;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -626,6 +646,13 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
   }
 
   Widget _buildNonSubmittedStudentCard(NonSubmittedStudentDto student) {
+    String? subscriptionDate;
+    if (student.subscriptionCreatedAt != null) {
+      final dt = student.subscriptionCreatedAt!.toLocal();
+      subscriptionDate =
+          '${dt.year}/${dt.month}/${dt.day} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
+    }
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
@@ -644,6 +671,23 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
             const SizedBox(height: 4),
             Text(student.studentEmail,
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            if (subscriptionDate != null) ...[
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(Icons.calendar_today_rounded,
+                      size: 13, color: AppColors.textSecondary),
+                  const SizedBox(width: 4),
+                  Text(
+                    'تاريخ الاشتراك: $subscriptionDate',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 8),
             Row(
               children: [
@@ -735,6 +779,139 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
             borderRadius: BorderRadius.circular(16),
             borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEnrichProgressBar() {
+    final percent = (_enrichProgress * 100).toInt();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final completed = (_enrichProgress * _submissions.length).toInt();
+    final total = _submissions.length;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [
+                    AppColors.primary.withOpacity(0.12),
+                    AppColors.primary.withOpacity(0.05),
+                  ]
+                : [
+                    AppColors.primary.withOpacity(0.06),
+                    AppColors.primary.withOpacity(0.02),
+                  ],
+          ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: AppColors.primary.withOpacity(isDark ? 0.2 : 0.12),
+          ),
+        ),
+        child: Row(
+          children: [
+            // Circular percentage
+            SizedBox(
+              width: 40,
+              height: 40,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    value: _enrichProgress,
+                    strokeWidth: 3,
+                    backgroundColor: AppColors.primary.withOpacity(0.12),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
+                    strokeCap: StrokeCap.round,
+                  ),
+                  Text(
+                    '$percent',
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 14),
+            // Text + progress bar
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'جاري جلب بيانات المصححين',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                      Text(
+                        '$completed / $total',
+                        style: GoogleFonts.outfit(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Stack(
+                      children: [
+                        // Background
+                        Container(
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                        // Gradient fill
+                        FractionallySizedBox(
+                          widthFactor: _enrichProgress,
+                          child: Container(
+                            height: 6,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  AppColors.primary,
+                                  Color(0xFF6C63FF),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(6),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withOpacity(0.4),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -864,6 +1041,7 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
                       )
                     else ...[
                       _buildSearchBar(),
+                      if (_isEnriching) _buildEnrichProgressBar(),
                       if (_filteredSubmissions.isEmpty)
                         Expanded(
                           child: Center(
@@ -1181,16 +1359,39 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
             ),
           ],
         ),
-        trailing: Text(
-          formatScoreWithMax(
-            submission.currentTotalScore,
-            submission.maxScore,
-          ),
-          style: GoogleFonts.outfit(
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-            color: AppColors.primary,
-          ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              formatScoreWithMax(
+                submission.currentTotalScore,
+                submission.maxScore,
+              ),
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            InkWell(
+              onTap: () => _handleDeleteSubmission(submission),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  size: 18,
+                  color: AppColors.error,
+                ),
+              ),
+            ),
+          ],
         ),
         onTap: () {
           Navigator.push(
@@ -1205,23 +1406,113 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
                 viewingStudentName: submission.studentName,
               ),
             ),
-          ).then((_) => _refreshSubmissionsSilently());
+          );
         },
       ),
     );
   }
 
+  Future<void> _handleDeleteSubmission(ExamSubmission submission) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.delete_forever_rounded,
+                color: AppColors.error,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'حذف النتيجة',
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'هل أنت متأكد من حذف نتيجة "${submission.studentName}"؟\n\nلا يمكن التراجع عن هذا الإجراء.',
+          style: GoogleFonts.inter(
+            color: Theme.of(context).textTheme.bodyMedium?.color,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'إلغاء',
+              style: GoogleFonts.inter(
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: Text(
+              'حذف',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final response = await _courseService.deleteExamResult(
+      submission.studentExamResultId,
+    );
+
+    if (mounted) {
+      if (response.succeeded) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم حذف نتيجة ${submission.studentName}'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        _fetchSubmissions();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ: ${response.message}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildStatusBadge(ExamSubmission submission) {
     final hasGradedBy =
         submission.gradedByName != null && submission.gradedByName!.isNotEmpty;
-    final serverSaysGraded = submission.pendingGradingAnswers == 0;
     final manualPending = _manualPending(submission);
 
-    // If graded — either server says so, or we have a grader name, or no manual pending
-    if (hasGradedBy || serverSaysGraded || manualPending == 0) {
-      final label = hasGradedBy
-          ? 'تم التصحيح ✓ بواسطة: ${submission.gradedByName}'
-          : 'تم التصحيح ✓';
+    // Case 1: Has a grader name — definitely graded
+    if (hasGradedBy) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
@@ -1229,7 +1520,7 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
-          label,
+          'تم التصحيح ✓ بواسطة: ${submission.gradedByName}',
           style: const TextStyle(
             color: AppColors.success,
             fontSize: 10,
@@ -1239,17 +1530,75 @@ class _ExamSubmissionsScreenState extends State<ExamSubmissionsScreen> {
       );
     }
 
-    // Pending manual grading
+    // Case 2: Backend explicitly says graded via isGraded flag
+    if (submission.isGraded) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.success.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Text(
+          'تم التصحيح ✓',
+          style: TextStyle(
+            color: AppColors.success,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    // Case 3: Student submitted without answering (totalAnswers=0, no pending)
+    // This is NOT graded yet — show pending
+    if (submission.totalAnswers == 0 && submission.pendingGradingAnswers == 0) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.error.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Text(
+          'بانتظار تصحيح (لم يجب)',
+          style: TextStyle(
+            color: AppColors.error,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    // Case 4: Has pending manual grading
+    if (manualPending > 0) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.warning.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          'بانتظار تصحيح ($manualPending)',
+          style: const TextStyle(
+            color: AppColors.warning,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    // Case 5: Server says no pending and has answers — auto-graded (MCQ only exam)
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.warning.withOpacity(0.1),
+        color: AppColors.success.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(
-        'بانتظار تصحيح ($manualPending)',
-        style: const TextStyle(
-          color: AppColors.warning,
+      child: const Text(
+        'تم التصحيح ✓',
+        style: TextStyle(
+          color: AppColors.success,
           fontSize: 10,
           fontWeight: FontWeight.bold,
         ),

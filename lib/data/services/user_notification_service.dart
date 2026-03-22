@@ -90,13 +90,13 @@ class UserNotificationService {
         return ApiResponse<List<NotificationItem>>.fromJson(
           body,
           (data) {
-                final list = data as List;
-                for (var e in list) {
-                  print('📋 Notification raw keys: ${(e as Map).keys.toList()}');
-                  print('📋 Notification raw data: $e');
-                }
-                return list.map((e) => NotificationItem.fromJson(e)).toList();
-              },
+            final list = data as List;
+            for (var e in list) {
+              print('📋 Notification raw keys: ${(e as Map).keys.toList()}');
+              print('📋 Notification raw data: $e');
+            }
+            return list.map((e) => NotificationItem.fromJson(e)).toList();
+          },
         );
       } else {
         return ApiResponse(

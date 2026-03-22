@@ -1322,10 +1322,10 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
                                 ],
                               ),
                               child: Text(
-                                _unreadCount > 9 ? '9+' : '$_unreadCount',
+                                '$_unreadCount',
                                 style: GoogleFonts.inter(
                                   color: Colors.white,
-                                  fontSize: 8,
+                                  fontSize: _unreadCount > 99 ? 7 : (_unreadCount > 9 ? 8 : 9),
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -2541,6 +2541,7 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
       backgroundColor: Colors.transparent,
       builder: (context) => _ReorderCoursesSheet(
         courses: coursesToReorder,
+        allCourses: _courses,
         teacherService: _teacherService,
         onReordered: _fetchCourses,
       ),
@@ -2550,11 +2551,13 @@ class _TeacherCoursesPageState extends State<_TeacherCoursesPage> {
 
 class _ReorderCoursesSheet extends StatefulWidget {
   final List<Course> courses;
+  final List<Course> allCourses;
   final TeacherService teacherService;
   final VoidCallback onReordered;
 
   const _ReorderCoursesSheet({
     required this.courses,
+    required this.allCourses,
     required this.teacherService,
     required this.onReordered,
   });
@@ -2586,11 +2589,17 @@ class _ReorderCoursesSheetState extends State<_ReorderCoursesSheet> {
       teacherId = await tokenService.getTeacherId() ?? 0;
     }
 
-    final newOrderIds = _localCourses.map((c) => c.id).toList();
+    // Build full list: reordered courses first, then remaining courses not in the filter
+    final reorderedIds = _localCourses.map((c) => c.id).toSet();
+    final remainingCourses = widget.allCourses
+        .where((c) => !reorderedIds.contains(c.id))
+        .map((c) => c.id)
+        .toList();
+    final allOrderedIds = [..._localCourses.map((c) => c.id), ...remainingCourses];
 
     final response = await widget.teacherService.reorderCourses(
       teacherId,
-      newOrderIds,
+      allOrderedIds,
     );
 
     setState(() => _isSaving = false);

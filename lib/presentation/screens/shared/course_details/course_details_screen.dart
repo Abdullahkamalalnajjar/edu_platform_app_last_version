@@ -56,6 +56,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
   bool _hasApprovedSubscription = false;
   bool _isAssistant = false; // Track if user is assistant
   StudentCourseScore? _studentScore; // Track student total score
+  final Set<int> _expandedLectureIds = {}; // Track which lectures are expanded
 
   @override
   void initState() {
@@ -104,6 +105,12 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
         'Initial lectures empty or target lecture ${widget.initialLectureId} missing - refreshing course...',
       );
       _refreshCourse();
+    }
+
+    // Auto-expand the target lecture from notification
+    if (widget.initialLectureId != null) {
+      _expandedLectureIds.add(widget.initialLectureId!);
+      print('📂 Auto-expanding lecture ID: ${widget.initialLectureId}');
     }
 
     // Execute config check when entering the screen as requested
@@ -195,6 +202,10 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
         // Sort materials inside each lecture
         for (var lecture in _lectures) {
           lecture.materials.sort((a, b) => a.index.compareTo(b.index));
+        }
+        // Auto-expand the target lecture if navigated from notification
+        if (widget.initialLectureId != null) {
+          _expandedLectureIds.add(widget.initialLectureId!);
         }
       });
       _fetchExams();
@@ -701,6 +712,8 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
     final accent = Theme.of(context).primaryColor;
     final exams = _lectureExams[lecture.id] ?? [];
     final isTeacherOrAssistant = widget.isTeacher || _isAssistant;
+    final isExpanded = _expandedLectureIds.contains(lecture.id);
+    final isTargetLecture = widget.initialLectureId == lecture.id;
 
     return FadeInUp(
       duration: const Duration(milliseconds: 400),
@@ -710,12 +723,29 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
           color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark
-                ? Colors.white.withOpacity(0.08)
-                : Colors.grey.shade200,
+            color: isTargetLecture
+                ? const Color(0xFFFFD700) // Golden border
+                : isDark
+                    ? Colors.white.withOpacity(0.08)
+                    : Colors.grey.shade200,
+            width: isTargetLecture ? 2.0 : 1.0,
           ),
           boxShadow: [
-            BoxShadow(
+            if (isTargetLecture) ...[
+              BoxShadow(
+                color: const Color(0xFFFFD700).withOpacity(0.3),
+                blurRadius: 16,
+                spreadRadius: 2,
+                offset: const Offset(0, 0),
+              ),
+              BoxShadow(
+                color: const Color(0xFFFFD700).withOpacity(0.15),
+                blurRadius: 24,
+                spreadRadius: 4,
+                offset: const Offset(0, 0),
+              ),
+            ] else
+              BoxShadow(
               color: isDark
                   ? Colors.black.withOpacity(0.2)
                   : Colors.black.withOpacity(0.05),
@@ -732,32 +762,52 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
               // ── Cover Image ─────────────────────────────────
               if (lecture.coverImageUrl != null &&
                   lecture.coverImageUrl!.isNotEmpty)
-                Image.network(
-                  lecture.coverImageUrl!,
-                  width: double.infinity,
-                  height: 140,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox(),
-                  loadingBuilder: (_, child, progress) {
-                    if (progress == null) return child;
-                    return Container(
-                      height: 140,
-                      color: accent.withOpacity(0.05),
-                      child: const Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    );
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (_expandedLectureIds.contains(lecture.id)) {
+                        _expandedLectureIds.remove(lecture.id);
+                      } else {
+                        _expandedLectureIds.add(lecture.id);
+                      }
+                    });
                   },
+                  child: Image.network(
+                    lecture.coverImageUrl!,
+                    width: double.infinity,
+                    height: 140,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox(),
+                    loadingBuilder: (_, child, progress) {
+                      if (progress == null) return child;
+                      return Container(
+                        height: 140,
+                        color: accent.withOpacity(0.05),
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               // ── ExpansionTile ────────────────────────────────
               Theme(
+                key: ValueKey('lecture_${lecture.id}_$isExpanded'),
                 data: Theme.of(context).copyWith(
                   dividerColor: Colors.transparent,
                 ),
                 child: ExpansionTile(
+              initiallyExpanded: isExpanded,
+              onExpansionChanged: (expanded) {
+                if (expanded) {
+                  _expandedLectureIds.add(lecture.id);
+                } else {
+                  _expandedLectureIds.remove(lecture.id);
+                }
+              },
               tilePadding: const EdgeInsets.fromLTRB(14, 4, 14, 4),
               childrenPadding: EdgeInsets.zero,
               collapsedBackgroundColor: Colors.transparent,
@@ -3899,13 +3949,8 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
   Future<void> _showCreateExamDialog(Lecture lecture) async {
     final titleController = TextEditingController();
     final durationController = TextEditingController();
-    // Default deadline: one year from now
-    DateTime? selectedDeadline = DateTime(
-      DateTime.now().year + 1,
-      DateTime.now().month,
-      DateTime.now().day,
-      23, 59,
-    );
+    // Deadline is optional — default to null
+    DateTime? selectedDeadline;
     DateTime? selectedPublishedAt;
     int selectedType = 1; // 1 = Exam, 2 = Assignment
     bool isRandomized = true;
@@ -4069,82 +4114,6 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
-                const SizedBox(height: 16),
-                InkWell(
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 730)),
-                      builder: (context, child) {
-                        return Theme(
-                          data: Theme.of(context).copyWith(
-                            colorScheme: const ColorScheme.dark(
-                              primary: AppColors.primary,
-                              onPrimary: Colors.white,
-                              surface: AppColors.surface,
-                              onSurface: AppColors.textPrimary,
-                            ),
-                            dialogBackgroundColor: AppColors.surface,
-                          ),
-                          child: child!,
-                        );
-                      },
-                    );
-                    if (date != null) {
-                      final time = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.now(),
-                        builder: (context, child) {
-                          return child!;
-                        },
-                      );
-                      if (time != null) {
-                        setDialogState(() {
-                          selectedDeadline = DateTime(
-                            date.year,
-                            date.month,
-                            date.day,
-                            time.hour,
-                            time.minute,
-                          );
-                        });
-                      }
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.glassBorder),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.calendar_today_rounded,
-                          color: AppColors.primary,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          selectedDeadline != null
-                              ? '${selectedDeadline!.toLocal()}'.split('.')[0]
-                              : 'اختر موعداً نهائياً (اختياري)',
-                          style: TextStyle(
-                            color: selectedDeadline != null
-                                ? AppColors.textPrimary
-                                : AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
                 // ── publishedAt picker ─────────────────────────────
                 const SizedBox(height: 16),
                 Text(
@@ -4291,16 +4260,29 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
                           size: 20,
                         ),
                         const SizedBox(width: 12),
-                        Text(
-                          selectedDeadline != null
-                              ? '${selectedDeadline!.toLocal()}'.split('.')[0]
-                              : 'اختر موعداً نهائياً (اختياري)',
-                          style: TextStyle(
-                            color: selectedDeadline != null
-                                ? AppColors.textPrimary
-                                : AppColors.textSecondary,
+                        Expanded(
+                          child: Text(
+                            selectedDeadline != null
+                                ? '${selectedDeadline!.toLocal()}'.split('.')[0]
+                                : 'اختر موعداً نهائياً (اختياري)',
+                            style: TextStyle(
+                              color: selectedDeadline != null
+                                  ? AppColors.textPrimary
+                                  : AppColors.textSecondary,
+                            ),
                           ),
                         ),
+                        if (selectedDeadline != null)
+                          GestureDetector(
+                            onTap: () => setDialogState(
+                              () => selectedDeadline = null,
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              size: 16,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
                       ],
                     ),
                   ),

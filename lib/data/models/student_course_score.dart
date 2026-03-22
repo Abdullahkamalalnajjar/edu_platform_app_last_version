@@ -9,6 +9,7 @@ class StudentCourseScore {
   final double percentage;
   final int examsTaken;
   final int examsCompleted;
+  final DateTime? subscriptionCreatedAt;
 
   StudentCourseScore({
     required this.studentId,
@@ -21,6 +22,7 @@ class StudentCourseScore {
     required this.percentage,
     required this.examsTaken,
     required this.examsCompleted,
+    this.subscriptionCreatedAt,
   });
 
   factory StudentCourseScore.fromJson(Map<String, dynamic> json) {
@@ -35,6 +37,9 @@ class StudentCourseScore {
       percentage: (json['percentage'] ?? 0).toDouble(),
       examsTaken: json['examsTaken'] ?? 0,
       examsCompleted: json['examsCompleted'] ?? 0,
+      subscriptionCreatedAt: json['subscriptionCreatedAt'] != null
+          ? DateTime.tryParse(json['subscriptionCreatedAt'])
+          : null,
     );
   }
 
@@ -50,6 +55,7 @@ class StudentCourseScore {
       'percentage': percentage,
       'examsTaken': examsTaken,
       'examsCompleted': examsCompleted,
+      'subscriptionCreatedAt': subscriptionCreatedAt?.toIso8601String(),
     };
   }
 }

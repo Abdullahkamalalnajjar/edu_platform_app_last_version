@@ -496,6 +496,23 @@ class _CourseStudentsScoresScreenState
               ),
             ],
           ),
+          if (score.subscriptionCreatedAt != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.calendar_today_rounded,
+                    size: 13, color: Theme.of(context).textTheme.bodyMedium?.color),
+                const SizedBox(width: 4),
+                Text(
+                  'تاريخ الاشتراك: ${_formatDate(score.subscriptionCreatedAt!)}',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
 
           // Score Details
@@ -575,5 +592,10 @@ class _CourseStudentsScoresScreenState
       (prev, score) => prev + score.percentage,
     );
     return sum / _scores.length;
+  }
+
+  String _formatDate(DateTime dt) {
+    final local = dt.toLocal();
+    return '${local.year}/${local.month}/${local.day} ${local.hour}:${local.minute.toString().padLeft(2, '0')}';
   }
 }

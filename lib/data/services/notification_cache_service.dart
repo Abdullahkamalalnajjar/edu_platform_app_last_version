@@ -9,7 +9,8 @@ class NotificationCacheService {
 
   /// Save an FCM notification data payload to cache.
   /// Key is generated from title + body to match with API notifications.
-  static Future<void> cacheNotificationData(Map<String, dynamic> data, {String? title, String? body}) async {
+  static Future<void> cacheNotificationData(Map<String, dynamic> data,
+      {String? title, String? body}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final cacheJson = prefs.getString(_cacheKey);
@@ -40,7 +41,8 @@ class NotificationCacheService {
   }
 
   /// Find cached data for a notification by matching title and body.
-  static Future<Map<String, dynamic>?> findCachedData(String title, String body) async {
+  static Future<Map<String, dynamic>?> findCachedData(
+      String title, String body) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final cacheJson = prefs.getString(_cacheKey);

@@ -52,11 +52,18 @@ class ApiConstants {
   static String getSubmissionsByExamId(int examId) =>
       '$baseUrl/api/v1/exams/$examId/submissions';
 
+  static String getUngradedSubmissions(int examId) =>
+      '$baseUrl/api/v1/exams/$examId/ungraded-submissions';
+
   static String getNonSubmittedStudents(int examId, int courseId) =>
       '$baseUrl/api/v1/exams/$examId/non-submitted-students?courseId=$courseId';
 
   // Get exam by ID
   static String getExamById(int examId) => '$baseUrl/api/v1/exams/$examId';
+
+  // Delete student exam result
+  static String deleteExamResult(int studentExamResultId) =>
+      '$baseUrl/api/v1/exams/results/$studentExamResultId/delete';
 
   // Deadline Exception Endpoints
   static const String createDeadlineException =

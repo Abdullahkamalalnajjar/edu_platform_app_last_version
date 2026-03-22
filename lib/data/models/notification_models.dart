@@ -31,22 +31,23 @@ class NotificationItem {
   });
 
   factory NotificationItem.fromJson(Map<String, dynamic> json) {
+    // Support both camelCase and PascalCase from backend
     return NotificationItem(
-      id: json['id'] ?? 0,
-      title: json['title'] ?? '',
-      body: json['body'] ?? '',
-      timestamp: json['timestamp'] != null
-          ? DateTime.parse(json['timestamp'])
+      id: json['id'] ?? json['Id'] ?? 0,
+      title: json['title'] ?? json['Title'] ?? '',
+      body: json['body'] ?? json['Body'] ?? '',
+      timestamp: (json['timestamp'] ?? json['Timestamp']) != null
+          ? DateTime.parse((json['timestamp'] ?? json['Timestamp']))
           : DateTime.now(),
-      isRead: json['isRead'] ?? false,
-      type: json['type'],
-      courseId: _toInt(json['courseId']),
-      examId: _toInt(json['examId']),
-      lectureId: _toInt(json['lectureId']),
-      status: json['status'],
-      teacherId: _toInt(json['teacherId']),
-      lectureName: json['lectureName'],
-      courseName: json['courseName'],
+      isRead: json['isRead'] ?? json['IsRead'] ?? false,
+      type: json['type'] ?? json['Type'],
+      courseId: _toInt(json['courseId'] ?? json['CourseId']),
+      examId: _toInt(json['examId'] ?? json['ExamId']),
+      lectureId: _toInt(json['lectureId'] ?? json['LectureId']),
+      status: json['status'] ?? json['Status'],
+      teacherId: _toInt(json['teacherId'] ?? json['TeacherId']),
+      lectureName: json['lectureName'] ?? json['LectureName'],
+      courseName: json['courseName'] ?? json['CourseName'],
     );
   }
 

@@ -80,6 +80,7 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
   // Timer & Deadline
   Timer? _timer;
   Duration _remainingTime = Duration.zero;
+  Duration _totalDuration = Duration.zero;
   bool _isExpired = false;
   bool _hasTimer = false;
   bool _isReviewing = false;
@@ -428,6 +429,7 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                 _isExpired = true; // Timer ran out while away
               } else {
                 _remainingTime = remaining;
+                _totalDuration = totalDuration;
                 _hasTimer = true;
                 _startTimer();
               }
@@ -486,7 +488,8 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
           await prefs.setString(startTimeKey, DateTime.now().toIso8601String());
         }
 
-        _remainingTime = Duration(minutes: _exam!.durationInMinutes);
+        _totalDuration = Duration(minutes: _exam!.durationInMinutes);
+        _remainingTime = _totalDuration;
         _hasTimer = true;
         _startTimer();
       }
@@ -681,6 +684,131 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
         '${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
+  Widget _buildTimerProgressBar() {
+    final totalSeconds = _totalDuration.inSeconds;
+    final remainingSeconds = _remainingTime.inSeconds;
+    // Progress: 0 = full time left, 1 = time is up
+    final elapsed = totalSeconds > 0
+        ? ((totalSeconds - remainingSeconds) / totalSeconds).clamp(0.0, 1.0)
+        : 0.0;
+    final remaining = 1.0 - elapsed;
+
+    // Color transitions: green → orange → red
+    Color timerColor;
+    Color timerBgColor;
+    if (_remainingTime.inMinutes < 2) {
+      timerColor = AppColors.error;
+      timerBgColor = AppColors.error.withOpacity(0.1);
+    } else if (_remainingTime.inMinutes < 5) {
+      timerColor = const Color(0xFFFF9800); // orange
+      timerBgColor = const Color(0xFFFF9800).withOpacity(0.1);
+    } else {
+      timerColor = AppColors.success;
+      timerBgColor = AppColors.success.withOpacity(0.1);
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      decoration: BoxDecoration(
+        color: isDark
+            ? timerColor.withOpacity(0.08)
+            : timerColor.withOpacity(0.04),
+        border: Border(
+          bottom: BorderSide(
+            color: timerColor.withOpacity(0.15),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              // Timer icon with pulse effect for low time
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: timerBgColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  _remainingTime.inMinutes < 5
+                      ? Icons.timer_off_rounded
+                      : Icons.timer_outlined,
+                  size: 18,
+                  color: timerColor,
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Time display
+              Text(
+                _formatDuration(_remainingTime),
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: timerColor,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const Spacer(),
+              // Label
+              Text(
+                'الوقت المتبقي',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: Stack(
+              children: [
+                // Background
+                Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: timerColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+                // Fill (remaining time)
+                FractionallySizedBox(
+                  widthFactor: remaining,
+                  child: Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          timerColor,
+                          timerColor.withOpacity(0.7),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(6),
+                      boxShadow: [
+                        BoxShadow(
+                          color: timerColor.withOpacity(0.4),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showExamSettings() {
     if (_exam == null) return;
 
@@ -823,13 +951,13 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
             ),
             if (_hasTimer && !_isAlreadySubmitted && !_isLoading && !_isExpired)
               Text(
-                'الوقت المتبقي: ${_formatDuration(_remainingTime)}',
-                style: GoogleFonts.inter(
+                _formatDuration(_remainingTime),
+                style: GoogleFonts.outfit(
                   color: _remainingTime.inMinutes < 5
                       ? AppColors.error
-                      : AppColors.success,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
+                      : AppColors.textSecondary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
           ],
@@ -897,7 +1025,8 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
             const SizedBox(height: 16),
             Text(
               _error!,
-              style: GoogleFonts.inter(color: Theme.of(context).textTheme.bodyMedium?.color),
+              style: GoogleFonts.inter(
+                  color: Theme.of(context).textTheme.bodyMedium?.color),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -920,7 +1049,137 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
       return Center(
         child: Text(
           'لم يتم العثور على اختبار.',
-          style: GoogleFonts.inter(color: Theme.of(context).textTheme.bodyMedium?.color),
+          style: GoogleFonts.inter(
+              color: Theme.of(context).textTheme.bodyMedium?.color),
+        ),
+      );
+    }
+
+    // Check if exam is hidden (student shouldn't access it)
+    if (!_exam!.isVisible && !widget.isTeacher && !_isAssistant) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.visibility_off_rounded,
+                  size: 56,
+                  color: AppColors.warning,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'هذا الاختبار غير متاح حالياً',
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'قد يكون المعلم قد أخفى هذا الاختبار مؤقتاً',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                label: Text(
+                  'رجوع',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_exam!.questions.isEmpty && !widget.isTeacher && !_isAssistant) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.quiz_outlined,
+                  size: 56,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'هذا الاختبار لا يحتوي على أسئلة بعد',
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'سيتم إضافة الأسئلة قريباً',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                label: Text(
+                  'رجوع',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -945,7 +1204,12 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
     if (_isAlreadySubmitted && !_isReviewing) {
       return Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 40,
+            bottom: 40 + MediaQuery.of(context).padding.bottom + 80,
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -1107,7 +1371,8 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                               child: CircularProgressIndicator(
                                 value: percentage,
                                 strokeWidth: 15,
-                                backgroundColor: Theme.of(context).brightness == Brightness.dark
+                                backgroundColor: Theme.of(context).brightness ==
+                                        Brightness.dark
                                     ? AppColors.surfaceLight
                                     : AppColors.primary.withOpacity(0.08),
                                 valueColor: AlwaysStoppedAnimation<Color>(
@@ -1126,13 +1391,18 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                                   style: GoogleFonts.outfit(
                                     fontSize: 56,
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge
+                                        ?.color,
                                   ),
                                 ),
                                 Container(
                                   height: 2,
                                   width: 50,
-                                  color: Theme.of(context).dividerColor.withOpacity(0.3),
+                                  color: Theme.of(context)
+                                      .dividerColor
+                                      .withOpacity(0.3),
                                   margin: const EdgeInsets.symmetric(
                                     vertical: 8,
                                   ),
@@ -1198,11 +1468,16 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                           Container(
                             padding: const EdgeInsets.all(24),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).brightness == Brightness.dark
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
                                   ? AppColors.surfaceLight.withOpacity(0.5)
                                   : AppColors.primary.withOpacity(0.05),
                               borderRadius: BorderRadius.circular(24),
-                              border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? AppColors.glassBorder : AppColors.primary.withOpacity(0.1)),
+                              border: Border.all(
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? AppColors.glassBorder
+                                      : AppColors.primary.withOpacity(0.1)),
                             ),
                             child: Column(
                               children: [
@@ -1212,9 +1487,11 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                                       Container(
                                         padding: const EdgeInsets.all(10),
                                         decoration: BoxDecoration(
-                                          color: Theme.of(context).brightness == Brightness.dark
+                                          color: Theme.of(context).brightness ==
+                                                  Brightness.dark
                                               ? AppColors.background
-                                              : AppColors.primary.withOpacity(0.08),
+                                              : AppColors.primary
+                                                  .withOpacity(0.08),
                                           borderRadius: BorderRadius.circular(
                                             10,
                                           ),
@@ -1242,7 +1519,10 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                                         style: GoogleFonts.outfit(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
-                                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                                          color: Theme.of(context)
+                                              .textTheme
+                                              .bodyLarge
+                                              ?.color,
                                         ),
                                       ),
                                     ],
@@ -1254,7 +1534,9 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                                     ),
                                     child: Divider(
                                       height: 1,
-                                      color: Theme.of(context).dividerColor.withOpacity(0.2),
+                                      color: Theme.of(context)
+                                          .dividerColor
+                                          .withOpacity(0.2),
                                     ),
                                   ),
                                 if (hasEssays)
@@ -1263,9 +1545,11 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                                       Container(
                                         padding: const EdgeInsets.all(10),
                                         decoration: BoxDecoration(
-                                          color: Theme.of(context).brightness == Brightness.dark
+                                          color: Theme.of(context).brightness ==
+                                                  Brightness.dark
                                               ? AppColors.background
-                                              : AppColors.primary.withOpacity(0.08),
+                                              : AppColors.primary
+                                                  .withOpacity(0.08),
                                           borderRadius: BorderRadius.circular(
                                             10,
                                           ),
@@ -1320,7 +1604,10 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                                           style: GoogleFonts.outfit(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
-                                            color: Theme.of(context).textTheme.bodyLarge?.color,
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodyLarge
+                                                ?.color,
                                           ),
                                         ),
                                     ],
@@ -1347,7 +1634,11 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                       },
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.glassBorder : AppColors.primary.withOpacity(0.3)),
+                        side: BorderSide(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.glassBorder
+                                    : AppColors.primary.withOpacity(0.3)),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -1441,90 +1732,106 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
       );
     }
 
-    return Stack(
+    return Column(
       children: [
-        // Main content (Exam Questions)
-        ListView.builder(
-          controller: _scrollController,
-          padding: const EdgeInsets.all(16),
-          // Add 1 to itemCount if we need to show the submit button
-          itemCount: (!widget.isTeacher && !_isAlreadySubmitted)
-              ? _exam!.questions.length + 1
-              : _exam!.questions.length,
-          itemBuilder: (context, index) {
-            // Check if this is the last item and we need to show the submit button
-            if ((!widget.isTeacher && !_isAlreadySubmitted) &&
-                index == _exam!.questions.length) {
-              return Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submitExam,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
+        // Premium Timer Progress Bar
+        if (_hasTimer && !_isAlreadySubmitted && !_isExpired)
+          _buildTimerProgressBar(),
+        // Main content
+        Expanded(
+          child: Stack(
+            children: [
+              // Main content (Exam Questions)
+              ListView.builder(
+                controller: _scrollController,
+                padding: EdgeInsets.only(
+                  top: 16,
+                  left: 16,
+                  right: 16,
+                  bottom: 16 + MediaQuery.of(context).padding.bottom + 80,
+                ),
+                // Add 1 to itemCount if we need to show the submit button
+                itemCount: (!widget.isTeacher && !_isAlreadySubmitted)
+                    ? _exam!.questions.length + 1
+                    : _exam!.questions.length,
+                itemBuilder: (context, index) {
+                  // Check if this is the last item and we need to show the submit button
+                  if ((!widget.isTeacher && !_isAlreadySubmitted) &&
+                      index == _exam!.questions.length) {
+                    return Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: ElevatedButton(
+                        onPressed: _isSubmitting ? null : _submitExam,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        )
-                      : Text(
-                          'تسليم الاختبار',
-                          style: GoogleFonts.outfit(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+                          elevation: 0,
                         ),
-                ),
-              );
-            }
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                'تسليم الاختبار',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    );
+                  }
 
-            // Otherwise return the question card
-            final question = _exam!.questions[index];
-            return _buildQuestionCard(question, index + 1);
-          },
-        ),
+                  // Otherwise return the question card
+                  final question = _exam!.questions[index];
+                  return _buildQuestionCard(question, index + 1);
+                },
+              ),
 
-        // 2. Review Mode Footer (For Student)
-        if (_isReviewing && !widget.isTeacher)
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              margin: const EdgeInsets.only(bottom: 24, left: 16, right: 16),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.95),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+              // 2. Review Mode Footer (For Student)
+              if (_isReviewing && !widget.isTeacher)
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    margin:
+                        const EdgeInsets.only(bottom: 24, left: 16, right: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.95),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      'وضع المراجعة (للقراءة فقط)',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
                   ),
-                ],
-              ),
-              child: Text(
-                'وضع المراجعة (للقراءة فقط)',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
                 ),
-              ),
-            ),
+            ],
           ),
+        ),
       ],
     );
   }
@@ -1681,6 +1988,37 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                         color: AppColors.warning,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            // 'Not answered' indicator for teacher reviewing
+            if (_isReviewing &&
+                widget.isTeacher &&
+                widget.viewingStudentId != null &&
+                !_studentAnswerResults.containsKey(question.id))
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.warning),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded,
+                        color: AppColors.warning, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'لم يتم الإجابة على هذا السؤال',
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.warning,
+                        fontSize: 13,
                       ),
                     ),
                   ],
@@ -2879,26 +3217,28 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
 
   Widget _buildTeacherGradingSection(Question question) {
     final result = _studentAnswerResults[question.id];
-    if (result == null) return const SizedBox.shrink();
+    // Allow grading even if student didn't answer this question
 
     final isMCQ = question.answerType == 'MCQ';
 
     // Determine MCQ correctness from options
     bool mcqCorrect = false;
-    if (isMCQ && result.questionOptions.isNotEmpty) {
-      final correctIds = result.questionOptions
-          .where((o) => o.isCorrect)
-          .map((o) => o.optionId)
-          .toSet();
-      final selectedIds = result.questionOptions
-          .where((o) => o.isSelected)
-          .map((o) => o.optionId)
-          .toSet();
-      mcqCorrect = correctIds.isNotEmpty &&
-          correctIds.length == selectedIds.length &&
-          correctIds.containsAll(selectedIds);
-    } else if (isMCQ) {
-      mcqCorrect = result.isCorrect;
+    if (result != null) {
+      if (isMCQ && result.questionOptions.isNotEmpty) {
+        final correctIds = result.questionOptions
+            .where((o) => o.isCorrect)
+            .map((o) => o.optionId)
+            .toSet();
+        final selectedIds = result.questionOptions
+            .where((o) => o.isSelected)
+            .map((o) => o.optionId)
+            .toSet();
+        mcqCorrect = correctIds.isNotEmpty &&
+            correctIds.length == selectedIds.length &&
+            correctIds.containsAll(selectedIds);
+      } else if (isMCQ) {
+        mcqCorrect = result.isCorrect;
+      }
     }
 
     // All questions get editable grading fields
@@ -2920,7 +3260,7 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                 color: AppColors.success,
               ),
             ),
-            if (isMCQ) ...[
+            if (isMCQ && result != null) ...[
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -2938,9 +3278,7 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                           ? Icons.check_circle_rounded
                           : Icons.cancel_rounded,
                       size: 14,
-                      color: mcqCorrect
-                          ? AppColors.success
-                          : AppColors.error,
+                      color: mcqCorrect ? AppColors.success : AppColors.error,
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -2948,9 +3286,7 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
                       style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: mcqCorrect
-                            ? AppColors.success
-                            : AppColors.error,
+                        color: mcqCorrect ? AppColors.success : AppColors.error,
                       ),
                     ),
                   ],
@@ -3072,13 +3408,14 @@ class _StudentExamScreenState extends State<StudentExamScreen> {
 
       for (var q in _exam!.questions) {
         final result = _studentAnswerResults[q.id];
-        if (result == null) continue;
+        // Include questions even if student didn't answer (result == null)
 
-        final points = _teacherPoints[q.id] ?? result.pointsEarned ?? 0.0;
-        final feedback = _teacherFeedback[q.id] ?? result.feedback ?? '';
+        final points = _teacherPoints[q.id] ?? result?.pointsEarned ?? 0.0;
+        final feedback = _teacherFeedback[q.id] ?? result?.feedback ?? '';
 
-        final idToSend =
-            result.studentAnswerId != 0 ? result.studentAnswerId : q.id;
+        final idToSend = (result != null && result.studentAnswerId != 0)
+            ? result.studentAnswerId
+            : q.id;
 
         print(
           '✏️ Grading: ID=$idToSend, QuestionID=${q.id}, Type=${q.answerType}, Points=$points',

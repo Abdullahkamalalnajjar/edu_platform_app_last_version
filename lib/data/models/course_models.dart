@@ -627,6 +627,7 @@ class ExamSubmission {
   final String? parentPhoneNumber;
   final String? studentPhoneNumber;
   final String? gradedByName;
+  final bool isGraded;
 
   ExamSubmission({
     required this.studentExamResultId,
@@ -646,6 +647,7 @@ class ExamSubmission {
     this.parentPhoneNumber,
     this.studentPhoneNumber,
     this.gradedByName,
+    this.isGraded = false,
   });
 
   factory ExamSubmission.fromJson(Map<String, dynamic> json) {
@@ -700,6 +702,7 @@ class ExamSubmission {
       parentPhoneNumber: json['parentPhoneNumber'],
       studentPhoneNumber: json['studentPhoneNumber'],
       gradedByName: gradedByName,
+      isGraded: json['isGraded'] ?? false,
     );
   }
 
@@ -721,6 +724,7 @@ class ExamSubmission {
     String? parentPhoneNumber,
     String? studentPhoneNumber,
     String? gradedByName,
+    bool? isGraded,
   }) {
     return ExamSubmission(
       studentExamResultId: studentExamResultId ?? this.studentExamResultId,
@@ -740,6 +744,7 @@ class ExamSubmission {
       parentPhoneNumber: parentPhoneNumber ?? this.parentPhoneNumber,
       studentPhoneNumber: studentPhoneNumber ?? this.studentPhoneNumber,
       gradedByName: gradedByName ?? this.gradedByName,
+      isGraded: isGraded ?? this.isGraded,
     );
   }
 }
@@ -1051,6 +1056,7 @@ class NonSubmittedStudentDto {
   final String studentEmail;
   final String studentPhone;
   final String parentPhone;
+  final DateTime? subscriptionCreatedAt;
 
   NonSubmittedStudentDto({
     required this.studentId,
@@ -1058,6 +1064,7 @@ class NonSubmittedStudentDto {
     required this.studentEmail,
     required this.studentPhone,
     required this.parentPhone,
+    this.subscriptionCreatedAt,
   });
 
   factory NonSubmittedStudentDto.fromJson(Map<String, dynamic> json) {
@@ -1067,6 +1074,9 @@ class NonSubmittedStudentDto {
       studentEmail: json['studentEmail'] ?? '',
       studentPhone: json['studentPhone'] ?? '',
       parentPhone: json['parentPhone'] ?? '',
+      subscriptionCreatedAt: json['subscriptionCreatedAt'] != null
+          ? DateTime.tryParse(json['subscriptionCreatedAt'])
+          : null,
     );
   }
 }

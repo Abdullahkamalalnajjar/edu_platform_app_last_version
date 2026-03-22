@@ -257,66 +257,243 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Teacher Section Title
+                    // Teacher Section Card (16:9)
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
+                        horizontal: 20,
+                        vertical: 8,
                       ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 30, // vertical line
-                            height: 2,
-                            color: Theme.of(
-                              context,
-                            ).primaryColor.withOpacity(0.5),
-                          ),
-                          const SizedBox(width: 10),
-                          Builder(
-                            builder: (context) {
-                              String? imageUrl;
-                              final profile = teacherData['teacherProfile'];
-                              if (profile is String) {
-                                imageUrl = profile;
-                              } else if (profile is Map &&
-                                  profile['photoUrl'] != null) {
-                                imageUrl = profile['photoUrl'];
-                              }
-                              imageUrl ??= teacherData['photoUrl'];
+                      child: AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: Builder(
+                          builder: (context) {
+                            final isDark = Theme.of(context).brightness == Brightness.dark;
+                            String? imageUrl;
+                            final profile = teacherData['teacherProfile'];
+                            if (profile is String) {
+                              imageUrl = profile;
+                            } else if (profile is Map &&
+                                profile['photoUrl'] != null) {
+                              imageUrl = profile['photoUrl'];
+                            }
+                            imageUrl ??= teacherData['photoUrl'];
 
-                              if (imageUrl != null && imageUrl.isNotEmpty) {
-                                return CircleAvatar(
-                                  radius: 16,
-                                  backgroundImage: NetworkImage(imageUrl),
-                                  backgroundColor: Theme.of(context).cardColor,
-                                );
-                              }
-                              return CircleAvatar(
-                                radius: 16,
-                                backgroundColor: Theme.of(context).cardColor,
-                                child: Icon(
-                                  Icons.person,
-                                  size: 16,
-                                  color: Theme.of(
-                                    context,
-                                  ).iconTheme.color?.withOpacity(0.7),
+                            return Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isDark
+                                      ? AppColors.primary.withOpacity(0.15)
+                                      : AppColors.primary.withOpacity(0.1),
                                 ),
-                              );
-                            },
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            teacherName,
-                            style: GoogleFonts.outfit(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(
-                                context,
-                              ).textTheme.titleMedium?.color?.withOpacity(0.9),
-                            ),
-                          ),
-                        ],
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withOpacity(isDark ? 0.12 : 0.08),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.15),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(20),
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    // Background: teacher photo or gradient
+                                    if (imageUrl != null && imageUrl.isNotEmpty)
+                                      Image.network(
+                                        imageUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (c, e, s) => Container(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                              colors: isDark
+                                                  ? [const Color(0xFF1A0A0A), const Color(0xFF2A1010)]
+                                                  : [AppColors.primary.withOpacity(0.08), AppColors.primaryDark.withOpacity(0.15)],
+                                            ),
+                                          ),
+                                          child: Center(
+                                            child: Icon(
+                                              Icons.person_rounded,
+                                              size: 60,
+                                              color: AppColors.primary.withOpacity(0.3),
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: isDark
+                                                ? [const Color(0xFF1A0A0A), const Color(0xFF2A1010)]
+                                                : [AppColors.primary.withOpacity(0.08), AppColors.primaryDark.withOpacity(0.15)],
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: Icon(
+                                            Icons.person_rounded,
+                                            size: 60,
+                                            color: AppColors.primary.withOpacity(0.3),
+                                          ),
+                                        ),
+                                      ),
+
+                                    // Dark gradient overlay
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            Colors.black.withOpacity(0.1),
+                                            Colors.black.withOpacity(0.7),
+                                          ],
+                                          stops: const [0.3, 1.0],
+                                        ),
+                                      ),
+                                    ),
+
+                                    // Subtle side gradient
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.centerLeft,
+                                          end: Alignment.centerRight,
+                                          colors: [
+                                            AppColors.primary.withOpacity(0.15),
+                                            Colors.transparent,
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+
+                                    // "المعلم" badge top-right
+                                    Positioned(
+                                      top: 12,
+                                      right: 12,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary.withOpacity(0.85),
+                                          borderRadius: BorderRadius.circular(10),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppColors.primary.withOpacity(0.4),
+                                              blurRadius: 8,
+                                            ),
+                                          ],
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.school_rounded, color: Colors.white, size: 14),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              'المعلم',
+                                              style: GoogleFonts.tajawal(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+
+                                    // Course count badge top-left
+                                    Positioned(
+                                      top: 12,
+                                      left: 12,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.5),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: Colors.white.withOpacity(0.15)),
+                                        ),
+                                        child: Text(
+                                          '${courses.length} دورات',
+                                          style: GoogleFonts.inter(
+                                            color: Colors.white.withOpacity(0.9),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+
+                                    // Teacher name + arrow at bottom
+                                    Positioned(
+                                      bottom: 16,
+                                      left: 16,
+                                      right: 16,
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  teacherName,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: GoogleFonts.tajawal(
+                                                    fontSize: 20,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: Colors.white,
+                                                    shadows: [
+                                                      Shadow(
+                                                        color: Colors.black.withOpacity(0.5),
+                                                        blurRadius: 8,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  widget.subjectName,
+                                                  style: GoogleFonts.inter(
+                                                    fontSize: 13,
+                                                    color: Colors.white.withOpacity(0.75),
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withOpacity(0.15),
+                                              borderRadius: BorderRadius.circular(10),
+                                              border: Border.all(color: Colors.white.withOpacity(0.2)),
+                                            ),
+                                            child: const Icon(
+                                              Icons.arrow_downward_rounded,
+                                              color: Colors.white,
+                                              size: 18,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ),
 

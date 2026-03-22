@@ -449,210 +449,141 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen>
   Widget _buildTeacherHeader() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final photoUrl = widget.teacherData['photoUrl'];
-    final subjectName = widget.teacherData['subjectName'] ?? '';
-    final educationStages =
-        widget.teacherData['teacherEducationStages'] as List? ?? [];
     final phoneNumber = widget.teacherData['phoneNumber'];
     final facebookUrl = widget.teacherData['facebookUrl'];
     final telegramUrl = widget.teacherData['telegramUrl'];
     final whatsAppNumber = widget.teacherData['whatsAppNumber'];
     final youTubeUrl = widget.teacherData['youTubeUrl'];
 
-    String stagesText = '';
-    if (educationStages.isNotEmpty) {
-      stagesText = educationStages
-          .map((stage) => stage['educationStageName'] ?? '')
-          .where((name) => name.isNotEmpty)
-          .join(' • ');
+    // Collect social buttons
+    final socialButtons = <Widget>[];
+    if (phoneNumber != null && phoneNumber.isNotEmpty) {
+      socialButtons.add(_buildSocialButton(
+        Icons.phone_rounded, Colors.blue,
+        () async {
+          final uri = Uri.parse('tel:$phoneNumber');
+          if (await canLaunchUrl(uri)) await launchUrl(uri);
+        },
+      ));
+    }
+    if (whatsAppNumber != null && whatsAppNumber.isNotEmpty) {
+      socialButtons.add(_buildSocialButton(
+        FontAwesomeIcons.whatsapp, const Color(0xFF25D366),
+        () => _openWhatsApp(whatsAppNumber),
+        isFontAwesome: true,
+      ));
+    }
+    if (facebookUrl != null && facebookUrl.isNotEmpty) {
+      socialButtons.add(_buildSocialButton(
+        FontAwesomeIcons.facebook, const Color(0xFF1877F2),
+        () async {
+          final uri = Uri.parse(facebookUrl);
+          if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
+        },
+        isFontAwesome: true,
+      ));
+    }
+    if (telegramUrl != null && telegramUrl.isNotEmpty) {
+      socialButtons.add(_buildSocialButton(
+        FontAwesomeIcons.telegram, const Color(0xFF0088CC),
+        () async {
+          final uri = Uri.parse(telegramUrl);
+          if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
+        },
+        isFontAwesome: true,
+      ));
+    }
+    if (youTubeUrl != null && youTubeUrl.isNotEmpty) {
+      socialButtons.add(_buildSocialButton(
+        FontAwesomeIcons.youtube, const Color(0xFFFF0000),
+        () async {
+          final uri = Uri.parse(youTubeUrl);
+          if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
+        },
+        isFontAwesome: true,
+      ));
     }
 
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? Theme.of(context).cardColor : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: isDark ? AppColors.glassBorder.withOpacity(0.5) : AppColors.primary.withOpacity(0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
       child: Column(
         children: [
-          Row(
-            children: [
-              // Teacher Avatar
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.primary.withOpacity(0.2),
-                      AppColors.primary.withOpacity(0.1),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.primary.withOpacity(0.3),
-                    width: 2,
-                  ),
+          // 16:9 Teacher Card
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: isDark
+                      ? AppColors.primary.withOpacity(0.15)
+                      : AppColors.primary.withOpacity(0.1),
                 ),
-                child: ClipOval(
-                  child: photoUrl != null && photoUrl.isNotEmpty
-                      ? Image.network(
-                          photoUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Center(
-                              child: Icon(
-                                Icons.person_rounded,
-                                size: 40,
-                                color: Theme.of(
-                                  context,
-                                ).textTheme.bodyLarge?.color,
-                              ),
-                            );
-                          },
-                        )
-                      : Center(
-                          child: Icon(
-                            Icons.person_rounded,
-                            size: 40,
-                            color: Theme.of(context).textTheme.bodyLarge?.color,
-                          ),
-                        ),
-                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(isDark ? 0.15 : 0.1),
+                    blurRadius: 24,
+                    offset: const Offset(0, 10),
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
-              const SizedBox(width: 16),
-
-              // Teacher Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    Text(
-                      widget.teacherName,
-                      style: GoogleFonts.outfit(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: Theme.of(context).textTheme.bodyLarge?.color,
-                      ),
-                    ),
-                    if (subjectName.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        subjectName,
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                    if (stagesText.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        stagesText,
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: Theme.of(context).textTheme.bodyMedium?.color,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                    // Background: teacher photo or gradient
+                    if (photoUrl != null && photoUrl.isNotEmpty)
+                      Image.network(
+                        photoUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => _buildTeacherHeaderFallback(isDark),
+                      )
+                    else
+                      _buildTeacherHeaderFallback(isDark),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
 
-          // Social Links
-          if ((phoneNumber != null && phoneNumber.isNotEmpty) ||
-              (facebookUrl != null && facebookUrl.isNotEmpty) ||
-              (telegramUrl != null && telegramUrl.isNotEmpty) ||
-              (whatsAppNumber != null && whatsAppNumber.isNotEmpty) ||
-              (youTubeUrl != null && youTubeUrl.isNotEmpty)) ...[
-            const SizedBox(height: 20),
-            Divider(color: AppColors.glassBorder),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                if (phoneNumber != null && phoneNumber.isNotEmpty)
-                  _buildSocialButton(
-                    Icons.phone_rounded,
-                    Colors.blue,
-                    () async {
-                      final uri = Uri.parse('tel:$phoneNumber');
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri);
-                      }
-                    },
-                  ),
-                if (whatsAppNumber != null && whatsAppNumber.isNotEmpty)
-                  _buildSocialButton(
-                    FontAwesomeIcons.whatsapp,
-                    const Color(0xFF25D366),
-                    () => _openWhatsApp(whatsAppNumber),
-                    isFontAwesome: true,
-                  ),
-                if (facebookUrl != null && facebookUrl.isNotEmpty)
-                  _buildSocialButton(
-                    FontAwesomeIcons.facebook,
-                    const Color(0xFF1877F2),
-                    () async {
-                      final uri = Uri.parse(facebookUrl);
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(
-                          uri,
-                          mode: LaunchMode.externalApplication,
-                        );
-                      }
-                    },
-                    isFontAwesome: true,
-                  ),
-                if (telegramUrl != null && telegramUrl.isNotEmpty)
-                  _buildSocialButton(
-                    FontAwesomeIcons.telegram,
-                    const Color(0xFF0088CC),
-                    () async {
-                      final uri = Uri.parse(telegramUrl);
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(
-                          uri,
-                          mode: LaunchMode.externalApplication,
-                        );
-                      }
-                    },
-                    isFontAwesome: true,
-                  ),
-                if (youTubeUrl != null && youTubeUrl.isNotEmpty)
-                  _buildSocialButton(
-                    FontAwesomeIcons.youtube,
-                    const Color(0xFFFF0000),
-                    () async {
-                      final uri = Uri.parse(youTubeUrl);
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(
-                          uri,
-                          mode: LaunchMode.externalApplication,
-                        );
-                      }
-                    },
-                    isFontAwesome: true,
-                  ),
-              ],
+          // Social Links below the card
+          if (socialButtons.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 12,
+              runSpacing: 8,
+              children: socialButtons,
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildTeacherHeaderFallback(bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF1A0A0A), const Color(0xFF2A1010), const Color(0xFF1A0505)]
+              : [AppColors.primary.withOpacity(0.15), AppColors.primaryDark.withOpacity(0.25)],
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.person_rounded,
+          size: 70,
+          color: AppColors.primary.withOpacity(0.25),
+        ),
       ),
     );
   }
